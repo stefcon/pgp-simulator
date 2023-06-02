@@ -1,79 +1,37 @@
-
 from collections import defaultdict
 import datetime
-import DES3 as des
-
-
-class PGPPrivateKeyRing:
-    """
-    PGP private key ring class that contains a list of private keys and public keys with following attributes:
-        - Key ID
-        - Timestamp
-        - Public Key
-        - Encrypted Private Key
-        - User ID
-    Structure can be indexed by both Key ID and User ID.
-    """
-    def __init__(self):
-        self.entries = {}
-        self.index_by_user_id = defaultdict(list)
-        self.index_by_key_id = {}
-
-    def add_entry(self, key_id, public_key, encrypted_private_key, user_id):
-        entry = {
-            'key_id': key_id,
-            'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
-            'public_key': public_key,
-            'encrypted_private_key': encrypted_private_key,
-            'user_id': user_id
-        }
-        self.entries[key_id] = entry
-        self.index_by_user_id.setdefault(user_id, []).append(entry)
-        self.index_by_key_id[key_id] = entry
-
-    def _get_entry_by_key_id(self, key_id):
-        return self.index_by_key_id.get(key_id)
-
-    def _get_entries_by_user_id(self, user_id):
-        return self.index_by_user_id.get(user_id)
-
-    def _remove_entry(self, key_id):
-        entry = self.entries.pop(key_id, None)
-        if entry:
-            entry = self.index_by_key_id.pop(key_id, None)
-            self.index_by_user_id[entry['user_id']].remove(entry)
-
-    def fetch_all_entries(self):
-        return list(self.entries.values())
-    
-    def print_all_entries(self):
-        for entry in self.entries.values():
-            print('Key ID:', entry['key_id'])
-            print('Timestamp:', entry['teimstamp'])
-            print('Public Key:', entry['public_key'])
-            print('Encrypted Private Key:', entry['encrypted_private_key'])
-            print('User ID:', entry['user_id'])
-            print()
+import pickle
+from .AES import *
+from Crypto.Hash import SHA1
 
 
 class PGPPublicKeyRing:
+    """
+    PGP public key ring class that contains a list of private keys and public keys with following attributes:
+        - Key ID
+        - Timestamp
+        - Public Key
+        - User ID
+    Structure can be indexed by both Key ID and User ID.
+    """
 
     def __init__(self):
         self.index_by_user_id = defaultdict(list)
         self.index_by_key_id = {}
 
-    def _encrypt_private_key(self, private_key, passphrase):
-        pass
-
-    def add_entry(self, key_id, public_key, encrypted_private_key, user_id):
-        entry = {
-            'key_id': key_id,
-            'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
-            'public_key': public_key,
-            'encrypted_private_key': encrypted_private_key,
-            'user_id': user_id
-        }
-        self.index_by_user_id.setdefault(user_id, []).append(entry)
+    def add_entry(self, key_id, key, email, name, type):
+        user_id = name + ' <' + email + '>'
+        if type == 'RSA':
+            entry = {
+                'key_id': key_id,
+                'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
+                'public_key': (key.n, key.e),
+                'user_id': user_id,
+                'type': 'RSA'
+            }
+        elif type == 'ELGAMAL/DSA':
+            pass
+        self.index_by_user_id[user_id].append(entry)
         self.index_by_key_id[key_id] = entry
 
     def get_entry_by_key_id(self, key_id):
@@ -82,51 +40,95 @@ class PGPPublicKeyRing:
     def get_entries_by_user_id(self, user_id):
         return self.index_by_user_id.get(user_id)
 
-    def remove_entry(self, key_id):
+    def remove_entry_key_id(self, key_id):
         entry = self.index_by_key_id.pop(key_id, None)
-        if entry:
+        if entry is not None:
             self.index_by_user_id[entry['user_id']].remove(entry)
 
-    def fetch_all_entries(self):
+    def remove_entry_user_id(self, user_id):
+        entries = self.index_by_user_id.pop(user_id, None)
+        if entries is not None:
+            for entry in entries:
+                self.index_by_key_id.pop(entry['key_id'], None)
+
+    def get_all_entries(self):
         return list(self.index_by_key_id.values())
     
     def print_all_entries(self):
         for entry in self.index_by_key_id.values():
             print('Key ID:', entry['key_id'])
-            print('Timestamp:', entry['teimstamp'])
+            print('Timestamp:', entry['timestamp'])
             print('Public Key:', entry['public_key'])
-            print('Encrypted Private Key:', entry['encrypted_private_key'])
             print('User ID:', entry['user_id'])
             print()
 
+class PGPPrivateKeyRing(PGPPublicKeyRing):
+    """
+    PGP private key ring class that contains a list of private keys and public keys with following attributes:
+        - Key ID
+        - Timestamp
+        - Public Key
+        - Encrypted Private Key
+        - User ID
+        - H(Passphrase)
+    Structure can be indexed by both Key ID and User ID.
+    """
+    def __init__(self):
+        super().__init__()
 
-# Example usage:
-key_ring = PGPPrivateKeyRing()
+    def _encrypt_private_key(self, private_key, passphrase):
+        serialized_private_key = pickle.dumps(private_key)
+        h_passphrase = SHA1.new(passphrase).digest()
+        cipher = aes.AES_Wrapper(h_passphrase)
+        ciphertext = cipher.encrypt(serialized_private_key)
+        return ciphertext, h_passphrase
+    
+    def _decrypt_private_key(self, encrypted_private_key, passphrase):
+        iv, ciphertext = encrypted_private_key[0:16], encrypted_private_key[16:]
+        cipher = aes.AES_Wrapper(passphrase)
+        serialized_private_key= cipher.decrypt(ciphertext, iv)
+        private_key = pickle.loads(serialized_private_key)
+        return private_key
+    
+    def get_decrypted_private_key(self, key_id, passphrase):
+        encrypted_private_key = self.index_by_key_id[key_id]['encrypted_private_key']
+        return self._decrypt_private_key(encrypted_private_key, passphrase)
+        
 
-# Add entries
-key_ring.add_entry("ABC123", "public_key1", "encrypted_private_key1", "user1")
-key_ring.add_entry("DEF456", "public_key2", "encrypted_private_key2", "user2")
-key_ring.add_entry("GHI789", "public_key3", "encrypted_private_key3", "user1")
+    def check_password(self, passphrase, key_id):
+        h_pp_to_be_checked = SHA1.new(passphrase).digest()
+        if h_pp_to_be_checked != self.index_by_key_id[key_id]['h_passphrase']:
+            return False
+        return True
 
-# Get entry by Key ID
-entry = key_ring.get_entry_by_key_id("ABC123")
-if entry:
-    print("Entry found:")
-    print(entry)
-else:
-    print("Entry not found.")
+    def add_entry(self, key_id, key, email, name, passphrase, type):
+        user_id = name + ' <' + email + '>'
+        encrypted_private_key, h_passphrase = self._encrypt_private_key(key, passphrase)
+        if type == 'RSA':
+            entry = {
+                'key_id': key_id,
+                'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
+                'public_key': (key.n, key.e),
+                'encrypted_private_key': encrypted_private_key,
+                'user_id': user_id,
+                'h_passphrase': h_passphrase,
+                'type': 'RSA'
+            }
+        elif type == 'ELGAMAL/DSA':
+            pass
+        self.index_by_user_id[user_id].append(entry)
+        self.index_by_key_id[key_id] = entry
 
-# Get entries by User ID
-entries = key_ring.get_entries_by_user_id("user1")
-if entries:
-    print("Entries found for user1:")
-    for entry in entries:
-        print(entry)
-else:
-    print("No entries found for user1.")
+    def print_all_entries(self):
+        for entry in self.index_by_key_id.values():
+            print('Key ID:', entry['key_id'])
+            print('Timestamp:', entry['timestamp'])
+            print('Public Key:', entry['public_key'])
+            print('Encrypted Private Key:', entry['encrypted_private_key'])
+            print('User ID:', entry['user_id'])
+            print('H(passphrase)', entry['h_passphrase'])
+            print()
 
-# Remove an entry
-key_ring.remove_entry("DEF456")
 
-# Print all entries
-key_ring.print_all_entries()
+public_key_ring = PGPPublicKeyRing()
+private_key_ring = PGPPrivateKeyRing()
