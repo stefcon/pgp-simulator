@@ -7,7 +7,7 @@ from .RSA import RSA_Wrapper
 from .Msg import Msg
 
 @implementer(IEncryption)
-class AES_Wrapper():
+class AES_Wrapper:
 
     def __init__(self, key):
         self.key = key

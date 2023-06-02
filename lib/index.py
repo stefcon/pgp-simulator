@@ -11,6 +11,7 @@ from .key_rings import *
 from .RSA import RSA_Wrapper
 from .DSA import DSA_Wrapper
 from .Msg import Msg
+from .pipeline import SendPipeline
 import zlib
 from base64 import b64encode, b64decode
 import pickle

@@ -1,7 +1,7 @@
 from collections import defaultdict
 import datetime
 import pickle
-from .AES import *
+from .AES import AES_Wrapper
 from Crypto.Hash import SHA1
 
 
@@ -79,13 +79,13 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
     def _encrypt_private_key(self, private_key, passphrase):
         serialized_private_key = pickle.dumps(private_key)
         h_passphrase = SHA1.new(passphrase).digest()
-        cipher = aes.AES_Wrapper(h_passphrase)
+        cipher = AES_Wrapper(h_passphrase)
         ciphertext = cipher.encrypt(serialized_private_key)
         return ciphertext, h_passphrase
     
     def _decrypt_private_key(self, encrypted_private_key, passphrase):
         iv, ciphertext = encrypted_private_key[0:16], encrypted_private_key[16:]
-        cipher = aes.AES_Wrapper(passphrase)
+        cipher = AES_Wrapper(passphrase)
         serialized_private_key= cipher.decrypt(ciphertext, iv)
         private_key = pickle.loads(serialized_private_key)
         return private_key
