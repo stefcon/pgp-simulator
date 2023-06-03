@@ -1,37 +1,5 @@
-from index import *
 import datetime
-
-def concatenate_with_timestamp(msg: Msg, filename: str):
-    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode()
-    msg.data = ts + filename + msg.data
-    return msg
-
-def zip_data(msg: Msg, _):
-    msg.data = zlib.compress(msg.data)
-    return msg
-
-def unzip_data(msg: Msg, _):
-    msg.data = zlib.decompress(msg.data)
-    return msg
-
-def radix_convert(msg: Msg, _):
-    msg.data = b64encode(msg.data).decode('ascii')
-    return msg
-
-def radix_deconvert(msg: Msg):
-    msg.data = b64decode(msg.data).decode('ascii')
-    return msg
-
-# Serializes the whole class using pickle library
-def save_to_file(msg: Msg, filename: str):
-    with open(filename, 'wb') as f:
-        pickle.dump(msg, f)
-
-# Deserializes the whole class using pickle library
-def load_from_file(msg: Msg, filename: str):    
-    with open(filename, 'rb') as f:
-        msg = pickle.load(f)
-    return msg
+from .pipeline_steps import *
 
 class SendPipeline:
 

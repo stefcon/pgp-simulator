@@ -1,8 +1,8 @@
 from collections import defaultdict
 import datetime
-import pickle
-from .AES import AES_Wrapper
 from Crypto.Hash import SHA1
+from Crypto.PublicKey import RSA
+from .AES import AES_Wrapper
 
 
 class PGPPublicKeyRing:
@@ -24,7 +24,7 @@ class PGPPublicKeyRing:
         if type == 'RSA':
             entry = {
                 'key_id': key_id,
-                'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
+                'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 'public_key': (key.n, key.e),
                 'user_id': user_id,
                 'type': 'RSA'
@@ -77,7 +77,7 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         super().__init__()
 
     def _encrypt_private_key(self, private_key, passphrase):
-        serialized_private_key = pickle.dumps(private_key)
+        serialized_private_key = private_key.export_key('DER')
         h_passphrase = SHA1.new(passphrase).digest()
         cipher = AES_Wrapper(h_passphrase)
         ciphertext = cipher.encrypt(serialized_private_key)
@@ -87,7 +87,7 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         iv, ciphertext = encrypted_private_key[0:16], encrypted_private_key[16:]
         cipher = AES_Wrapper(passphrase)
         serialized_private_key= cipher.decrypt(ciphertext, iv)
-        private_key = pickle.loads(serialized_private_key)
+        private_key = RSA.import_key(serialized_private_key)
         return private_key
     
     def get_decrypted_private_key(self, key_id, passphrase):
@@ -107,7 +107,7 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         if type == 'RSA':
             entry = {
                 'key_id': key_id,
-                'timestamp': datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d'),
+                'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 'public_key': (key.n, key.e),
                 'encrypted_private_key': encrypted_private_key,
                 'user_id': user_id,

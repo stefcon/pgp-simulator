@@ -28,17 +28,3 @@ class RSA_PSS_Wrapper:
             return True
         except (ValueError, TypeError):
             return False
-        
-def RSA_PSS_send_pipeline(msg: Msg, key_id_and_pass):
-    key_id, passphrase = key_id_and_pass
-    key = private_key_ring.get_decrypted_private_key(key_id, passphrase)
-    cipher = RSA_PSS_Wrapper(key)
-    signature = cipher.sign(msg.data)
-    ts = datetime.datetime.strptime(datetime.datetime.now(), '%Y-%m-%d')
-    msg.data = ts + key_id + signature + msg.data
-    return msg
-
-def RSA_PSS_receive_pipeline(msg: Msg):
-    # ts(???) - key_id(8B) - signature(20B)
-    pass
-    
