@@ -19,7 +19,8 @@ class RSA_Wrapper():
         return RSA.construct((n, e))
 
     def encrypt(self, data):
-        data = bytes(data, 'utf-8')
+        if isinstance(data, str):
+            data = bytes(data, 'utf-8')
         cipher = PKCS1_OAEP.new(self.key)
         ciphertext = cipher.encrypt(data)
         return ciphertext

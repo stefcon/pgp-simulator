@@ -9,7 +9,7 @@ def main():
 
     # Intialize message
     msg = Msg()
-    msg.data = message
+    msg.data = message.encode()
     msg.enc = 'AES'
     msg.auth = 'RSA'
     msg.uze_zip = True
@@ -17,11 +17,11 @@ def main():
 
     # Initialize key ring
     rsa_key = RSA_Wrapper.generate_key(2048)
-    public_key_ring.add_entry(0, rsa_key, 'adf@adfs.com', 'brr', 'RSA')
-    private_key_ring.add_entry(0, rsa_key, 'adf@adfs.com', 'brr', 'aaa', 'RSA')
+    public_key_ring.add_entry(b'0', rsa_key, 'adf@adfs.com', 'brr', 'RSA')
+    private_key_ring.add_entry(b'0', rsa_key, 'adf@adfs.com', 'brr', 'aaa', 'RSA')
 
 
-    pipeline = SendPipeline(msg, 'test.txt', 0, 0, 'brr')
+    pipeline = SendPipeline(msg, 'test.txt', b'0', b'0', 'aaa')
     msg = pipeline.run()
 
     print(msg.data)

@@ -78,32 +78,35 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
 
     def _encrypt_private_key(self, private_key, passphrase):
         serialized_private_key = private_key.export_key('DER')
-        h_passphrase = SHA1.new(passphrase).digest()
-        cipher = AES_Wrapper(h_passphrase)
+        cipher = AES_Wrapper(SHA1.new(bytes(passphrase, 'utf-8')).digest()[:16])
         ciphertext = cipher.encrypt(serialized_private_key)
-        return ciphertext, h_passphrase
+        return ciphertext
     
     def _decrypt_private_key(self, encrypted_private_key, passphrase):
         iv, ciphertext = encrypted_private_key[0:16], encrypted_private_key[16:]
-        cipher = AES_Wrapper(passphrase)
+        cipher = AES_Wrapper(SHA1.new(bytes(passphrase, 'utf-8')).digest()[:16])
         serialized_private_key= cipher.decrypt(ciphertext, iv)
         private_key = RSA.import_key(serialized_private_key)
         return private_key
+
     
     def get_decrypted_private_key(self, key_id, passphrase):
-        encrypted_private_key = self.index_by_key_id[key_id]['encrypted_private_key']
-        return self._decrypt_private_key(encrypted_private_key, passphrase)
-        
+        try:
+            encrypted_private_key = self.index_by_key_id[key_id]['encrypted_private_key']
+            return self._decrypt_private_key(encrypted_private_key, passphrase)
+        except (ValueError, KeyError):
+            # TODO: Raise user-defined exception
+            raise
 
-    def check_password(self, passphrase, key_id):
-        h_pp_to_be_checked = SHA1.new(passphrase).digest()
-        if h_pp_to_be_checked != self.index_by_key_id[key_id]['h_passphrase']:
-            return False
-        return True
+    # def check_password(self, passphrase, key_id):
+    #     h_pp_to_be_checked = SHA1.new(bytes(passphrase, 'utf-8')).digest()
+    #     if h_pp_to_be_checked != self.index_by_key_id[key_id]['h_passphrase']:
+    #         return False
+    #     return True
 
     def add_entry(self, key_id, key, email, name, passphrase, type):
         user_id = name + ' <' + email + '>'
-        encrypted_private_key, h_passphrase = self._encrypt_private_key(key, passphrase)
+        encrypted_private_key = self._encrypt_private_key(key, passphrase)
         if type == 'RSA':
             entry = {
                 'key_id': key_id,
@@ -111,7 +114,6 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
                 'public_key': (key.n, key.e),
                 'encrypted_private_key': encrypted_private_key,
                 'user_id': user_id,
-                'h_passphrase': h_passphrase,
                 'type': 'RSA'
             }
         elif type == 'ELGAMAL/DSA':
@@ -126,7 +128,6 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
             print('Public Key:', entry['public_key'])
             print('Encrypted Private Key:', entry['encrypted_private_key'])
             print('User ID:', entry['user_id'])
-            print('H(passphrase)', entry['h_passphrase'])
             print()
 
 

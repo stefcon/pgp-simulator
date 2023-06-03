@@ -17,7 +17,8 @@ class AES_Wrapper:
         return get_random_bytes(16)
 
     def encrypt(self, data):
-        data = bytes(data, 'utf-8')
+        if isinstance(data, str):
+            data = bytes(data, 'utf-8')
         cipher = AES.new(self.key, AES.MODE_CFB)
         ciphertext = cipher.encrypt(data)
         return cipher.iv + ciphertext

@@ -17,7 +17,7 @@ class RSA_PSS_Wrapper:
 
     def sign(self, message):
         """Hash data"""
-        h = SHA1.new(message).digest()
+        h = SHA1.new(message)
         return pss.new(self.key).sign(h)
     
     def verify(self, message, signature):

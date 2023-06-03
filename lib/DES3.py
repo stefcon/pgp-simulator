@@ -23,7 +23,8 @@ class DES3_Wrapper():
         return key
     
     def encrypt(self, data):
-        data = bytes(data, 'utf-8')
+        if isinstance(data, str):
+            data = bytes(data, 'utf-8')
         cipher = DES3.new(self.key, DES3.MODE_CFB)
         ciphertext = cipher.encrypt(data)
         return cipher.iv + ciphertext

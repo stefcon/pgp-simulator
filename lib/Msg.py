@@ -6,5 +6,5 @@ class Msg():
     auth: str = ''
     uze_zip: bool = False
     uze_rad64: bool = False
-    data: bytes = ''
+    data: bytes = b''
     

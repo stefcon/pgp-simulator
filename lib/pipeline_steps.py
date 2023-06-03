@@ -3,7 +3,7 @@ from .index import *
 # --------------- Concatenation (First step) ---------------
 def concatenate_with_timestamp(msg: Msg, filename: str):
     ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode()
-    msg.data = ts + filename + msg.data
+    msg.data = ts + bytes(filename, 'utf-8') + msg.data
     return msg
 
 # --------------- Zip ---------------
@@ -29,6 +29,7 @@ def radix_deconvert(msg: Msg):
 def save_to_file(msg: Msg, filename: str):
     with open(filename, 'wb') as f:
         pickle.dump(msg, f)
+    return msg
 
 # Deserializes the whole class using pickle library
 def load_from_file(msg: Msg, filename: str):    
@@ -44,9 +45,9 @@ def AES_send_pipeline(msg: Msg, key_id):
 
 
     entry = public_key_ring.get_entry_by_key_id(key_id)
-    if entry.type == 'RSA':
+    if entry['type'] == 'RSA':
         n, e = entry['public_key']
-        asym_cipher = RSA_Wrapper(RSA_Wrapper.construct_key((n, e)))
+        asym_cipher = RSA_Wrapper(RSA_Wrapper.construct_key(n, e))
     else:
         # Elgamal
         pass
@@ -65,9 +66,9 @@ def DES3_send_pipeline(msg: Msg, key_id):
     ciphertext = cipher.encrypt(msg.data)
 
     entry = public_key_ring.get_entry_by_key_id(key_id)
-    if entry.type == 'RSA':
+    if entry['type'] == 'RSA':
         n, e = entry['public_key']
-        asym_cipher = RSA_Wrapper(RSA_Wrapper.construct_key((n, e)))
+        asym_cipher = RSA_Wrapper(RSA_Wrapper.construct_key(n, e))
     else:
         # Elgamal
         pass
