@@ -5,58 +5,10 @@ from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long, inverse, 
 from Crypto.Util.py3compat import tobytes, tostr
 from Crypto.Util.asn1 import DerSequence, DerNull
 from Crypto.PublicKey import (_expand_subject_public_key_info,
-                              _create_subject_public_key_info,) # Maybe a problem with this import
+                              _create_subject_public_key_info,) # Shouldn't be used, but it is what it is
 
 
 # TODO: Mozda dodati protekciju za sam PEM format preko nekog passhprase-a, ima u Crypto.PublicKey.RSA ideja
-def _import_private(encoded, *kwargs):
-    # ElGamalPrivateKey ::= SEQUENCE {
-    #           version Version,
-    #           modulus INTEGER, -- p
-    #           publicExponent INTEGER, -- g
-    #           public result of  of g ^ x mod p INTEGER, -- y
-    #           private random INTEGER, -- x
-    # }
-    #
-    # Version ::= INTEGER
-    der = DerSequence().decode(encoded, nr_elements=5, only_ints_expected=True)
-    if der[0] != 0:
-        raise ValueError("No valid encoding of an ElGamal private key")
-    return ElGamalKey.construct(*der[1:])
-
-
-def _import_public(encoded, *kwargs):
-    # ElGamalPublicKey ::= SEQUENCE {
-    #           modulus INTEGER, -- p
-    #           publicExponent INTEGER, -- g
-    #           public result of  of g ^ x mod p INTEGER, -- y
-    # }
-    der = DerSequence().decode(encoded, nr_elements=3, only_ints_expected=True)
-    return ElGamalKey.construct(*der)
-
-def _import_subjectPublicKeyInfo(encoded, *kwargs):
-
-    algoid, encoded_key, params = _expand_subject_public_key_info(encoded)
-    if algoid != ElGamalKey.oid or params is not None:
-        raise ValueError("No ElGamal subjectPublicKeyInfo")
-    return _import_public(encoded_key)
-
-def _import_keyDER(extern_key, passphrase):
-    """Import an ElGamal key (public or private half), encoded in DER form."""
-
-    decodings = (_import_private,
-                 _import_public,
-                 _import_subjectPublicKeyInfo,
-                 )
-
-    for decoding in decodings:
-        try:
-            return decoding(extern_key, passphrase)
-        except ValueError:
-            pass
-
-    raise ValueError("ElGamal key format is not supported")
-
 class ElGamalKey:
     """
     ElGamal key object
@@ -185,3 +137,51 @@ class ElGamalEncryption:
         print(data)
         plaintext = self._decrypt(data)
         return long_to_bytes(plaintext)
+    
+def _import_private(encoded, *kwargs):
+    # ElGamalPrivateKey ::= SEQUENCE {
+    #           version Version,
+    #           modulus INTEGER, -- p
+    #           publicExponent INTEGER, -- g
+    #           public result of  of g ^ x mod p INTEGER, -- y
+    #           private random INTEGER, -- x
+    # }
+    #
+    # Version ::= INTEGER
+    der = DerSequence().decode(encoded, nr_elements=5, only_ints_expected=True)
+    if der[0] != 0:
+        raise ValueError("No valid encoding of an ElGamal private key")
+    return ElGamalKey.construct(*der[1:])
+
+
+def _import_public(encoded, *kwargs):
+    # ElGamalPublicKey ::= SEQUENCE {
+    #           modulus INTEGER, -- p
+    #           publicExponent INTEGER, -- g
+    #           public result of  of g ^ x mod p INTEGER, -- y
+    # }
+    der = DerSequence().decode(encoded, nr_elements=3, only_ints_expected=True)
+    return ElGamalKey.construct(*der)
+
+def _import_subjectPublicKeyInfo(encoded, *kwargs):
+
+    algoid, encoded_key, params = _expand_subject_public_key_info(encoded)
+    if algoid != ElGamalKey.oid or params is not None:
+        raise ValueError("No ElGamal subjectPublicKeyInfo")
+    return _import_public(encoded_key)
+
+def _import_keyDER(extern_key, passphrase):
+    """Import an ElGamal key (public or private half), encoded in DER form."""
+
+    decodings = (_import_private,
+                 _import_public,
+                 _import_subjectPublicKeyInfo,
+                 )
+
+    for decoding in decodings:
+        try:
+            return decoding(extern_key, passphrase)
+        except ValueError:
+            pass
+
+    raise ValueError("ElGamal key format is not supported")
