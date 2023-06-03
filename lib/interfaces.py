@@ -5,10 +5,13 @@ from zope.interface import Attribute
 class IEncryption(Interface):
     """Interface for encryption"""
 
+    def generate_session_key():
+        """Generate session key"""
+
     def encrypt(data):
         """Encrypt data"""
 
-    def decrypt(data, iv):
+    def decrypt(data):
         """Decrypt data"""
 
 

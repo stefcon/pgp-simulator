@@ -3,7 +3,7 @@ import datetime
 from Crypto.Hash import SHA1
 from Crypto.PublicKey import RSA
 from .AES import AES_Wrapper
-
+from .constants import *
 
 class PGPPublicKeyRing:
     """
@@ -21,15 +21,15 @@ class PGPPublicKeyRing:
 
     def add_entry(self, key_id, key, email, name, type):
         user_id = name + ' <' + email + '>'
-        if type == 'RSA':
+        if type == RSA_ALGORITHM:
             entry = {
                 'key_id': key_id,
                 'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 'public_key': (key.n, key.e),
                 'user_id': user_id,
-                'type': 'RSA'
+                'type': RSA_ALGORITHM
             }
-        elif type == 'ELGAMAL/DSA':
+        elif type == DSA_ELGAMAL_ALGORITHM:
             pass
         self.index_by_user_id[user_id].append(entry)
         self.index_by_key_id[key_id] = entry
@@ -83,9 +83,8 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         return ciphertext
     
     def _decrypt_private_key(self, encrypted_private_key, passphrase):
-        iv, ciphertext = encrypted_private_key[0:16], encrypted_private_key[16:]
         cipher = AES_Wrapper(SHA1.new(bytes(passphrase, 'utf-8')).digest()[:16])
-        serialized_private_key= cipher.decrypt(ciphertext, iv)
+        serialized_private_key= cipher.decrypt(encrypted_private_key)
         private_key = RSA.import_key(serialized_private_key)
         return private_key
 
@@ -93,7 +92,7 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
     def get_decrypted_private_key(self, key_id, passphrase):
         try:
             encrypted_private_key = self.index_by_key_id[key_id]['encrypted_private_key']
-            return self._decrypt_private_key(encrypted_private_key, passphrase)
+            return self._decrypt_private_key(encrypted_private_key, passphrase), self.index_by_key_id[key_id]['type']
         except (ValueError, KeyError):
             # TODO: Raise user-defined exception
             raise
@@ -107,16 +106,16 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
     def add_entry(self, key_id, key, email, name, passphrase, type):
         user_id = name + ' <' + email + '>'
         encrypted_private_key = self._encrypt_private_key(key, passphrase)
-        if type == 'RSA':
+        if type == RSA_ALGORITHM:
             entry = {
                 'key_id': key_id,
                 'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 'public_key': (key.n, key.e),
                 'encrypted_private_key': encrypted_private_key,
                 'user_id': user_id,
-                'type': 'RSA'
+                'type': RSA_ALGORITHM
             }
-        elif type == 'ELGAMAL/DSA':
+        elif type == DSA_ELGAMAL_ALGORITHM:
             pass
         self.index_by_user_id[user_id].append(entry)
         self.index_by_key_id[key_id] = entry

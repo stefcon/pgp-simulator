@@ -2,9 +2,6 @@ from zope.interface import implementer
 from .interfaces import IEncryption
 from Crypto.Cipher import DES3
 from Crypto.Random import get_random_bytes
-from .RSA import RSA_Wrapper
-# from .key_rings import public_key_ring, private_key_ring
-from .Msg import Msg
 
 @implementer(IEncryption)
 class DES3_Wrapper():
@@ -29,7 +26,8 @@ class DES3_Wrapper():
         ciphertext = cipher.encrypt(data)
         return cipher.iv + ciphertext
 
-    def decrypt(self, data, iv):
+    def decrypt(self, data):
+        iv, data = data[0:8], data[8:]
         cipher = DES3.new(self.key, DES3.MODE_CFB, iv=iv)
         plaintext = cipher.decrypt(data)
         return plaintext

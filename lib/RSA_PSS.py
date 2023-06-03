@@ -3,9 +3,6 @@ from .interfaces import ISignature
 from zope.interface import implementer
 from Crypto.Signature import pss
 from Crypto.Hash import SHA1
-from Crypto.PublicKey import RSA
-from Crypto import Random
-from .Msg import Msg
 from .key_rings import *
 
 @implementer(ISignature)
