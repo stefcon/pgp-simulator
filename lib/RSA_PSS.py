@@ -12,6 +12,15 @@ class RSA_PSS_Wrapper:
     def __init__(self, key):
         self.key = key
 
+    @classmethod
+    def signature_length(cls, key_length):
+        if key_length == 256:
+            return 256
+        elif key_length == 128:
+            return 128
+        else:
+            return -1
+
     def sign(self, message):
         """Hash data"""
         h = SHA1.new(message)

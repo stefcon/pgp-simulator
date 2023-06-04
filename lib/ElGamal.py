@@ -1,5 +1,5 @@
 from zope.interface import implementer
-from .interfaces import IEncryption
+from .interfaces import IAsymEncryption
 from Crypto.Random.random import randint
 from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long, inverse, getRandomRange
 from Crypto.Util.py3compat import tobytes, tostr
@@ -38,10 +38,18 @@ class ElGamalKey:
         elgamal_key.has_private_key = x is not None
         return elgamal_key
         
-    def generate_key(self):
-        self.p = getPrime(512)
+    # def generate_key(self):
+    #     self.p = getPrime(512)
+    #     self.x = randint(0, self.p - 2)
+    #     self.g = randint(0, self.p-1)
+    #     self.y = pow(self.g, self.x, self.p)
+    #     self.has_private_key = True
+
+
+    def generate_key(self, key_length):
+        self.p = getPrime(key_length)
         self.x = randint(0, self.p - 2)
-        self.g = randint(0, self.p-1)
+        self.g = randint(0, self.p - 1)
         self.y = pow(self.g, self.x, self.p)
         self.has_private_key = True
 
@@ -98,11 +106,21 @@ class ElGamalKey:
     def __str__(self):
         return f'ElGamalKey(p={self.p}, g={self.g}, y={self.y}, x={self.x})'
 
-@implementer(IEncryption)
-class ElGamalEncryption:
+@implementer(IAsymEncryption)
+class ElGamal_Wrapper:
     
     def __init__(self, key: ElGamalKey):
         self.key: ElGamalKey = key
+
+    @classmethod
+    def generate_key(cls, key_length):
+        elgamal_key = ElGamalKey()
+        elgamal_key.generate_key(key_length)
+        return elgamal_key
+
+    @classmethod
+    def construct_key(cls, p, g, y, x=None):
+        return ElGamalKey.construct(p, g, y, x)
 
     def _encrypt(self, m, k):
         p, g, y = self.key.public_key()

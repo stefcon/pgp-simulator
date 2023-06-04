@@ -1,18 +1,18 @@
-from .interfaces import IEncryption
+from .interfaces import IAsymEncryption
 from zope.interface import implementer
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from .Msg import Msg
 
-@implementer(IEncryption)
+@implementer(IAsymEncryption)
 class RSA_Wrapper():
 
     def __init__(self, key):
         self.key = key
 
     @classmethod
-    def generate_key(cls, key_size):
-        return RSA.generate(key_size)
+    def generate_key(cls, key_length):
+        return RSA.generate(key_length)
     
     @classmethod
     def construct_key(cls, n, e):

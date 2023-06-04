@@ -15,11 +15,11 @@ class SendPipeline:
         
         # Step 2: Signature
         if msg.auth is not None:
-            self.params.append((key_id_sender, passphrase))
+            self.steps.append(signature_send_pipeline)
             if msg.auth == RSA_PSS_ALGORITHM:
-                self.steps.append(RSA_PSS_send_pipeline)
-            if msg.auth == DSA_ELGAMAL_ALGORITHM:
-                pass
+                self.params.append((RSA_PSS_Wrapper, key_id_sender, passphrase))
+            if msg.auth == DSA_ALGORITHM:
+                self.params.append((DSA_Wrapper, key_id_sender, passphrase))
 
         # Step 3: Zip
         if msg.uze_zip:
@@ -75,11 +75,9 @@ class ReceivePipeline:
 
         # Step 4: Signature
         if self.msg.auth is not None:
+            self.steps.append(signature_receive_pipeline)
             self.params.append(None)
-            if self.msg.auth == RSA_PSS_ALGORITHM:
-                self.steps.append(RSA_PSS_receive_pipeline)
-            if self.msg.auth == DSA_ELGAMAL_ALGORITHM:
-                pass
+
         
         # Step 5: Message deconcatenation (filename + timestamp)
         self.params.append(filename)
