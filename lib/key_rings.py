@@ -24,7 +24,7 @@ class PGPPublicKeyRing:
         if type == RSA_ALGORITHM:
             entry = {
                 'key_id': key_id,
-                'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+                'timestamp': datetime.datetime.now().strftime(TIMESTAMP_FORMAT),
                 'public_key': (key.n, key.e),
                 'user_id': user_id,
                 'type': RSA_ALGORITHM
@@ -109,7 +109,7 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         if type == RSA_ALGORITHM:
             entry = {
                 'key_id': key_id,
-                'timestamp': datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+                'timestamp': datetime.datetime.now().strftime(TIMESTAMP_FORMAT),
                 'public_key': (key.n, key.e),
                 'encrypted_private_key': encrypted_private_key,
                 'user_id': user_id,
