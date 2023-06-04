@@ -28,7 +28,6 @@ def main():
         print('OK')
 
 
-    
     # elgamal_enc = ElGamalEncryption(elgamal_key)
     # m = 'cao'
     # m  = m.encode()

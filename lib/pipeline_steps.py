@@ -4,7 +4,7 @@ from .interfaces import IEncryption
 
 # --------------- Concatenation (First step) ---------------
 def concatenate_with_timestamp(msg: Msg, filename: str):
-    ts = datetime.datetime.now().strftime('%Y-%m-%d, %H:%M:%S').encode()
+    ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
     msg.data = ts + bytes(filename, 'utf-8') + msg.data
     return msg
 
@@ -87,7 +87,7 @@ def RSA_PSS_send_pipeline(msg: Msg, key_id_and_pass):
     key, _ = private_key_ring.get_decrypted_private_key(key_id, passphrase)
     cipher = RSA_PSS_Wrapper(key)
     signature = cipher.sign(msg.data)
-    ts = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S").encode()
+    ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
     msg.data = ts + key_id + signature + msg.data
     return msg
 
