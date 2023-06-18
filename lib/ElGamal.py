@@ -1,5 +1,6 @@
 from zope.interface import implementer
 from .interfaces import IAsymEncryption
+from Crypto.Random import get_random_bytes
 from Crypto.Random.random import randint
 from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long, inverse, getRandomRange
 from Crypto.Util.py3compat import tobytes, tostr
@@ -37,14 +38,6 @@ class ElGamalKey:
         elgamal_key.x = x
         elgamal_key.has_private_key = x is not None
         return elgamal_key
-        
-    # def generate_key(self):
-    #     self.p = getPrime(512)
-    #     self.x = randint(0, self.p - 2)
-    #     self.g = randint(0, self.p-1)
-    #     self.y = pow(self.g, self.x, self.p)
-    #     self.has_private_key = True
-
 
     def generate_key(self, key_length):
         self.p = getPrime(key_length)
@@ -67,12 +60,15 @@ class ElGamalKey:
             return (self.p, self.g, self.y, self.x)
         raise ValueError('No private key')
 
-    def export_key(self, format='PEM'):
+    def export_key(self, format='PEM', passphrase=None):
         """
         Export ElGamal key into a PEM format.
         """
         # DER format is always used, even in case of PEM, which simply
         # encodes it into BASE64.
+        if passphrase is not None: 
+            passphrase = tobytes(passphrase)
+
         if self.has_private():
             binary_key = DerSequence([0,
                                       self.p,
@@ -82,6 +78,8 @@ class ElGamalKey:
                                       ]).encode()
             
             key_type = 'ELGAMAL PRIVATE KEY'
+            if format == 'DER' and passphrase:
+                raise ValueError("PKCS#1 private key cannot be encrypted")
         else:
             key_type = 'PUBLIC KEY'
             binary_key = _create_subject_public_key_info(ElGamalKey.oid,
@@ -93,9 +91,12 @@ class ElGamalKey:
         if format == 'PEM':
             from Crypto.IO import PEM
 
-            pem_str = PEM.encode(binary_key, key_type, None, None)
+            pem_str = PEM.encode(binary_key, key_type, passphrase, get_random_bytes)
             return tobytes(pem_str)
-        return binary_key
+        if format == 'DER':
+            return binary_key
+        
+        raise ValueError("Unknown key format '%s'. Cannot export the ElGamal key." % format)
         
     def import_key(extern_key, passphrase=None):
         """
@@ -104,12 +105,24 @@ class ElGamalKey:
         from Crypto.IO import PEM
 
         extern_key = tobytes(extern_key)
+        if passphrase is not None:
+            passphrase = tobytes(passphrase)
+            
+        if extern_key.startswith(b'-----'):
+            (der, marker, enc_flag) = PEM.decode(tostr(extern_key), passphrase)
+            if enc_flag:
+                passphrase = None
+            return _import_keyDER(der, None)
+        
+        # This is probably a DER encoded key
+        return _import_keyDER(extern_key, passphrase)
 
-        (der, marker, enc_flag) = PEM.decode(tostr(extern_key), None)
-        return _import_keyDER(der, None)
 
     def __str__(self):
-        return f'ElGamalKey(p={self.p}, g={self.g}, y={self.y}, x={self.x})'
+        if self.has_private_key:
+            return f'ElGamalKey(p={self.p}, g={self.g}, y={self.y}, x={self.x})'
+        else:
+            return f'ElGamalKey(p={self.p}, g={self.g}, y={self.y})'
 
 @implementer(IAsymEncryption)
 class ElGamal_Wrapper:

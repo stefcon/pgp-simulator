@@ -3,7 +3,9 @@ import tkinter.ttk as ttk
 from tkinter import filedialog, messagebox
 from page_selector import *
 from lib.key_rings import *
+from lib.interfaces import * 
 
+@implementer(IObserver)
 class KeyVaultPage(tk.Frame):
     """
     Key Vault page that has the following strucutre:
@@ -28,7 +30,6 @@ class KeyVaultPage(tk.Frame):
         self.public_key_ring_treeview = ttk.Treeview(row1_frame, columns=public_key_ring_columns, show='headings')
         for c, n in zip(public_key_ring_columns, public_key_ring_column_names):
             self.public_key_ring_treeview.heading(c, text=n)
-        self.update_public_key_ring()
 
         self.public_key_ring_treeview.pack(side=tk.LEFT, padx=5)
 
@@ -44,9 +45,12 @@ class KeyVaultPage(tk.Frame):
         self.private_key_ring_treeview = ttk.Treeview(row2_frame, columns=private_key_ring_columns, show='headings')
         for c, n in zip(private_key_ring_columns, private_key_ring_column_names):
             self.private_key_ring_treeview.heading(c, text=n)
-        self.update_private_key_ring()
 
         self.private_key_ring_treeview.pack(side=tk.LEFT, padx=5)
+
+        # Subscribe to key rings
+        public_key_ring.attach(self)
+        private_key_ring.attach(self)
 
         # Third row
         row3_frame = ttk.Frame(self)
@@ -61,24 +65,44 @@ class KeyVaultPage(tk.Frame):
         export_button = ttk.Button(row3_frame, text="Export", command=self.export_key)
         export_button.pack(side=tk.LEFT, padx=5)
 
+        unselect_button = ttk.Button(row3_frame, text="Unselect All", command=self.deselect_all)
+        unselect_button.pack(side=tk.LEFT, padx=5)
+
         back_button = ttk.Button(row3_frame, text="Back", command = lambda: controller.display_frame(page_selector(HOME)))
         back_button.pack(side=tk.LEFT, padx=5)
 
-    def update_public_key_ring(self):
+    def deselect_all(self):
+        """
+        Function that deselects all the selected keys in the private key ring
+        """
+        for item in self.public_key_ring_treeview.selection():
+            self.public_key_ring_treeview.selection_remove(item)
+        for item in self.private_key_ring_treeview.selection():
+            self.private_key_ring_treeview.selection_remove(item)
+
+    def update(self, subject, new_entry):
+        """
+        Function that updates the key ring
+        """
+        if subject == public_key_ring:
+            self.update_public_key_ring(new_entry)
+        else:    
+            self.update_private_key_ring(new_entry)
+
+    def update_public_key_ring(self, entry):
         """
         Function that updates the public key ring treeview
         """
-        for row in public_key_ring.get_all_entries():
-            self.public_key_ring_treeview.insert("", tk.END, 
-                values=(row["key_id"], row["timestamp"], row["public_key"], row["user_id"], row["key_length"], row["type"]))
+        
+        new_entry_values = (entry["key_id"], entry["timestamp"], entry["public_key"], entry["user_id"], entry["key_length"], entry["type"])
+        self.public_key_ring_treeview.insert("", tk.END, values=new_entry_values)
 
-    def update_private_key_ring(self):
+    def update_private_key_ring(self, entry):
         """
         Function that updates the private key ring listbox
         """
-        for row in private_key_ring.get_all_entries():
-            self.private_key_ring_treeview.insert("", tk.END, 
-                values=(row["key_id"], row["timestamp"], row["public_key"], row["user_id"], row["encrypted_private_key"], row["key_length"], row["type"]))
+        new_entry_values = (entry["key_id"], entry["timestamp"], entry["public_key"], entry["user_id"], entry["encrypted_private_key"], entry["key_length"], entry["type"])
+        self.private_key_ring_treeview.insert("", tk.END, values=new_entry_values)
 
     def import_popup(self):
         self.pop = tk.Toplevel(self.controller)
@@ -101,6 +125,40 @@ class KeyVaultPage(tk.Frame):
 
         self.pop.mainloop()
 
+
+    def export_key(self):
+        if len(self.private_key_ring_treeview.selection()) == 0 or len(self.public_key_ring_treeview.selection()) == 0:
+            messagebox.showerror("Error", "Please select a key!")
+            return
+        if len(self.private_key_ring_treeview.selection()) > 1 or len(self.public_key_ring_treeview.selection()) > 1 or \
+            len(self.private_key_ring_treeview.selection()) > 0 and len(self.public_key_ring_treeview.selection()) > 0:
+            messagebox.showerror("Error", "Please select only one key!")
+            return
+        
+        if len(self.private_key_ring_treeview.selection()) > 0:
+            # Needs a passphrase for exporting the private key
+            self.pop = tk.Toplevel(self.controller)
+            self.pop.title("Insert passphrase")
+            self.pop.geometry("300x200")
+            self.pop.resizable(False, False)
+
+            name_label = ttk.Label(self.pop, text="Passphrase:")
+            name_label.pack(pady=10)
+            self.name_entry = ttk.Entry(self.pop)
+            self.name_entry.pack()
+
+            password_button = ttk.Button(self.pop, text="✔", command=self.export_private_key)
+            password_button.pack(pady=10)
+
+            self.pop.mainloop()
+
+
+            key_id = self.private_key_ring_treeview.item(self.private_key_ring_treeview.selection()[0])["values"][0]
+            key = private_key_ring.get_entry(key_id=key_id)["key"]
+        else:
+            key_id = self.public_key_ring_treeview.item(self.public_key_ring_treeview.selection()[0])["values"][0]
+            key = public_key_ring.get_entry(key_id=key_id)["key"]
+
     def import_key(self, public=True):
         """
         Function that imports a key from a file and adds it to the public/private key ring
@@ -117,7 +175,6 @@ class KeyVaultPage(tk.Frame):
                     passphrase='asd', # TODO: fix logic when importing private keys
                     key_length=length, 
                     type=type)
-                self.update_private_key_ring()
             # Only if private part doesn't throw an error!
             public_key_ring.add_entry(
                 key_id=key.public_key().export_key('DER')[-8:], 
@@ -126,7 +183,6 @@ class KeyVaultPage(tk.Frame):
                 name=self.name_entry.get(),
                 key_length=length, 
                 type=type)
-            self.update_public_key_ring()
             messagebox.showinfo("Success", "Key imported successfully!")
         except Exception as e:
             # Add error message popup for each exception

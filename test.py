@@ -39,11 +39,13 @@ def main():
 
     dsa_length = 1024
     dsa_key = DSA_Wrapper.generate_key(dsa_length)
+    print(dsa_key)
     public_key_ring.add_entry(b'2' * 8, dsa_key, 'adf@adfs.com', 'brr', dsa_length//8, DSA_ALGORITHM)
     private_key_ring.add_entry(b'2' * 8, dsa_key, 'adf@adfs.com', 'brr', 'aaa', dsa_length//8, DSA_ALGORITHM)
 
     rsa_length = 1024
     rsa_key = RSA_Wrapper.generate_key(rsa_length)
+    print(rsa_key.public_key())
     public_key_ring.add_entry(b'1'*8, rsa_key, 'adf@adfs.com', 'brr', rsa_length//8, RSA_ALGORITHM)
     private_key_ring.add_entry(b'1'*8, rsa_key, 'adf@adfs.com', 'brr', 'aaa', rsa_length//8, RSA_ALGORITHM)
 

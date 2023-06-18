@@ -40,6 +40,22 @@ class ISignature(Interface):
     def verify(message, signature, key):
         """Verify data"""
 
+class ISubject(Interface):
+    """Interface for subject"""
 
+    def attach(observer):
+        """Attach observer"""
+
+    def detach(observer):
+        """Detach observer"""
+
+    def notify(*args, **kwargs):
+        """Notify observers"""
+    
+class IObserver(Interface):
+    """Interface for observer"""
+
+    def update(subject):
+        """Update observer"""
 
 

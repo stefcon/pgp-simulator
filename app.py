@@ -30,11 +30,11 @@ class PGPSimulatorApp(tk.Tk):
         self.display_frame(HOME_PAGE)
   
 
-    def display_frame(self, cont):
+    def display_frame(self, page_name):
         """
         Display a frame for the given page name
         """
-        frame : tk.Frame = self.frames[cont]
+        frame : tk.Frame = self.frames[page_name]
         frame.tkraise()
 
 
