@@ -80,6 +80,12 @@ class BaseKeyRing:
             for entry in entries:
                 self.index_by_key_id.pop(entry['key_id'], None)
 
+    def get_user_ids(self):
+        return list(self.index_by_user_id.keys())
+    
+    def get_key_ids_for_user_id(self, user_id):
+        return [entry['key_id'] for entry in self.index_by_user_id[user_id]]
+
     def get_all_entries(self):
         return list(self.index_by_key_id.values())
     

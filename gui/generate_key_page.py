@@ -5,14 +5,6 @@ from page_selector import *
 from lib.key_rings import *
 
 class GenerateKeyPage(tk.Frame):
-    """
-    Generate key page that has the following structure
-    - Label 'Name' with an entry
-    - Label 'Email' with an entry
-    - Radio buttons in every row that has the following labels: 'RSA', 'DSA', 'ElGamal'
-    - Label 'Key length' and a dropdown with the following values: 1024, 2048, 4096
-    - Button labeled 'Generate'
-    """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -92,9 +84,7 @@ class GenerateKeyPage(tk.Frame):
         email = self.email_entry.get()
         key_length = int(self.key_length_dropdown.get())
         passphrase = self.passphrase_entry.get()
-        print("Gen passphrase:", passphrase)
         key_type = self.key_type.get()
-        print("Gen key type:", key_type)
 
         if not name or not email or not key_length or not key_type:
             messagebox.showerror("Error", "All fields are required")

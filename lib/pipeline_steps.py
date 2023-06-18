@@ -89,7 +89,7 @@ def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
     else:
         # TODO: Raise user-defined exception
         # Ne sme DSA za enkripciju, samo za potpis
-        raise
+        raise ValueError('Invalid key type')
     cipher = cipher_wrapper(session_key)
     msg.data = cipher.decrypt(ciphertext)
     return msg
@@ -104,7 +104,6 @@ def signature_send_pipeline(msg: Msg, wrapper_key_id_and_pass):
     elif type == DSA_ALGORITHM:
         cipher = DSA_Wrapper(key)
     else:
-        # TODO: Raise user-defined exception
         # Ne sme Elgamal za potpis, samo za enkripciju
         raise
     signature = cipher.sign(msg.data)
@@ -136,9 +135,8 @@ def signature_receive_pipeline(msg: Msg, _):
         y, g, p, q = entry['public_key']
         verifier = DSA_Wrapper(DSA_Wrapper.construct_key(y, g, p, q))
     else:
-        # TODO: Raise user-defined exception
         # Ne sme Elgamal za potpis, samo za enkripciju
-        raise
+        raise ValueError('Invalid key type')
 
     if (not verifier.verify(msg.data, signature)):
         raise Exception('Signature verification failed')
