@@ -21,6 +21,7 @@ def main():
         print('OK')
 
     drugi = ElGamalKey.construct(elgamal_key.p, elgamal_key.g, elgamal_key.y)
+    print("PRoba:", drugi.p.bit_length())
     drugi_str = drugi.__str__()
     with open('drugi.pem', 'wb') as f:
         f.write(drugi.export_key())

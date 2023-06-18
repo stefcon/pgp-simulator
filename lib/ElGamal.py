@@ -83,7 +83,7 @@ class ElGamalKey:
             
             key_type = 'ELGAMAL PRIVATE KEY'
         else:
-            key_type = "PUBLIC KEY"
+            key_type = 'PUBLIC KEY'
             binary_key = _create_subject_public_key_info(ElGamalKey.oid,
                                                          DerSequence([self.p,
                                                                       self.g,
@@ -97,7 +97,7 @@ class ElGamalKey:
             return tobytes(pem_str)
         return binary_key
         
-    def import_key(extern_key):
+    def import_key(extern_key, passphrase=None):
         """
         Import an ElGamal key (public or private half), encoded in standard PEM format
         """
@@ -148,7 +148,7 @@ class ElGamal_Wrapper:
         if isinstance(data, str):
             data = bytes(data, 'utf-8')
         plaintext = bytes_to_long(data)
-        print(plaintext)
+        # print(plaintext)
         k = randint(0, self.key.p - 2)
         ciphertext = self._encrypt(plaintext, k)
         return tuple(map(long_to_bytes, ciphertext))
@@ -157,7 +157,7 @@ class ElGamal_Wrapper:
         if not isinstance(data, tuple):
             data = (data,)
         data = tuple(map(bytes_to_long, data))
-        print(data)
+        # print(data)
         plaintext = self._decrypt(data)
         return long_to_bytes(plaintext)
     

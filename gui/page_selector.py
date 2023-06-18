@@ -2,7 +2,8 @@ HOME = 'Home'
 SEND = 'Send'
 RECEIVE = 'Receive'
 KEY_VAULT = 'Key Vault'
-PAGES = [HOME, SEND, RECEIVE, KEY_VAULT]
+GENERATE_KEY = 'Generate Key'
+PAGES = [HOME, SEND, RECEIVE, KEY_VAULT, GENERATE_KEY]
 
 def page_selector(page_name: str):
     """
@@ -20,6 +21,9 @@ def page_selector(page_name: str):
     elif page_name == KEY_VAULT:
         from key_vault_page import KEY_VAULT_PAGE
         return KEY_VAULT_PAGE
+    elif page_name == GENERATE_KEY:
+        from generate_key_page import GENERATE_KEY_PAGE
+        return GENERATE_KEY_PAGE
     else:
         raise ValueError("Invalid page name")
         

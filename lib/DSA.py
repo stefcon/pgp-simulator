@@ -3,12 +3,13 @@ from zope.interface import implementer
 from Crypto.Signature import DSS
 from Crypto.Hash import SHA1
 from Crypto.PublicKey import DSA
+from Crypto.PublicKey.DSA import DsaKey
 
 @implementer(ISignature)
 class DSA_Wrapper():
 
     def __init__(self, key):
-        self.key = key
+        self.key : DsaKey = key
 
     @classmethod
     def signature_length(cls, key_length):

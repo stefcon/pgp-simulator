@@ -82,9 +82,9 @@ def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
         asym_cipher = RSA_Wrapper(key)
         session_key = asym_cipher.decrypt(encrypted_session_key)
     elif type == ELGAMAL_ALGORITHM:
-        encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length], msg.data[KEY_ID_LEN + cipher_length:]
+        encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length * 2], msg.data[KEY_ID_LEN + cipher_length*2:]
         asym_cipher = ElGamal_Wrapper(key)
-        encrypted_session_key_tuple =(encrypted_session_key[0:(cipher_length // 2)], encrypted_session_key[(cipher_length // 2):])
+        encrypted_session_key_tuple =(encrypted_session_key[0:(cipher_length)], encrypted_session_key[(cipher_length):])
         session_key = asym_cipher.decrypt(encrypted_session_key_tuple)
     else:
         # TODO: Raise user-defined exception

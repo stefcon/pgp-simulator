@@ -47,7 +47,7 @@ class KeyVaultPage(tk.Frame):
         row3_frame = ttk.Frame(self)
         row3_frame.pack(pady=10)
 
-        generate_button = ttk.Button(row3_frame, text="Generate", command=self.generate_key)
+        generate_button = ttk.Button(row3_frame, text="Generate", command=lambda: controller.display_frame(page_selector(GENERATE_KEY)))
         generate_button.pack(side=tk.LEFT, padx=5)
 
         import_button = ttk.Button(row3_frame, text="Import", command=self.import_key)
@@ -73,11 +73,6 @@ class KeyVaultPage(tk.Frame):
         for row in private_key_ring.get_all_entries():
             self.private_key_ring_listbox.insert("", tk.END, row) # TODO: change this to something that works
 
-    def generate_key(self):
-        """
-        Function that generates a new key and adds it to the public key ring
-        """
-        pass
 
     def import_key(self, public=True):
         """

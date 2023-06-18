@@ -34,8 +34,8 @@ def main():
     #dsa_key = DSA
     elgamal_length = 2048
     elgamal_key = ElGamal_Wrapper.generate_key(elgamal_length)
-    public_key_ring.add_entry(b'0' * 8, elgamal_key, 'adf@adfs.com', 'brr', elgamal_length//4, ELGAMAL_ALGORITHM)
-    private_key_ring.add_entry(b'0' * 8, elgamal_key, 'adf@adfs.com', 'brr', 'aaa', elgamal_length//4, ELGAMAL_ALGORITHM)
+    public_key_ring.add_entry(b'0' * 8, elgamal_key, 'adf@adfs.com', 'brr', elgamal_length//8, ELGAMAL_ALGORITHM)
+    private_key_ring.add_entry(b'0' * 8, elgamal_key, 'adf@adfs.com', 'brr', 'aaa', elgamal_length//8, ELGAMAL_ALGORITHM)
 
     dsa_length = 1024
     dsa_key = DSA_Wrapper.generate_key(dsa_length)
@@ -48,7 +48,7 @@ def main():
     private_key_ring.add_entry(b'1'*8, rsa_key, 'adf@adfs.com', 'brr', 'aaa', rsa_length//8, RSA_ALGORITHM)
 
 
-    pipeline = SendPipeline(msg, 'test.txt', b'1'*8, b'0'*8, 'aaa')
+    pipeline = SendPipeline(msg, 'test.txt', b'2'*8, b'0'*8, 'aaa')
     msg = pipeline.run()
 
     print(msg.data)

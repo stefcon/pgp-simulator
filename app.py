@@ -5,7 +5,7 @@ import tkinter as tk
 from gui.index import *
 
 # All frames/pages used in the app
-FRAMES = (HOME_PAGE, SEND_PAGE, RECEIVE_PAGE, KEY_VAULT_PAGE)
+FRAMES = (HOME_PAGE, SEND_PAGE, RECEIVE_PAGE, KEY_VAULT_PAGE, GENERATE_KEY_PAGE)
 
 class PGPSimulatorApp(tk.Tk):
     def __init__(self, *args, **kwargs):
