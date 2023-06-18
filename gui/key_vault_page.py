@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from page_selector import *
 from lib.key_rings import *
 
@@ -50,7 +50,7 @@ class KeyVaultPage(tk.Frame):
         generate_button = ttk.Button(row3_frame, text="Generate", command=lambda: controller.display_frame(page_selector(GENERATE_KEY)))
         generate_button.pack(side=tk.LEFT, padx=5)
 
-        import_button = ttk.Button(row3_frame, text="Import", command=self.import_key)
+        import_button = ttk.Button(row3_frame, text="Import", command=self.import_popup)
         import_button.pack(side=tk.LEFT, padx=5)
 
         export_button = ttk.Button(row3_frame, text="Export", command=self.export_key)
@@ -73,18 +73,46 @@ class KeyVaultPage(tk.Frame):
         for row in private_key_ring.get_all_entries():
             self.private_key_ring_listbox.insert("", tk.END, row) # TODO: change this to something that works
 
+    def import_popup(self):
+        self.pop = tk.Toplevel(self.controller)
+        self.pop.title("Import key")
+        self.pop.geometry("300x200")
+        self.pop.resizable(False, False)
+
+        name_label = ttk.Label(self.pop, text="Name:")
+        name_label.pack(pady=10)
+        self.name_entry = ttk.Entry(self.pop)
+        self.name_entry.pack()
+
+        email_label = ttk.Label(self.pop, text="E-mail:")
+        email_label.pack(pady=10)
+        self.email_entry = ttk.Entry(self.pop)
+        self.email_entry.pack()
+
+        password_button = ttk.Button(self.pop, text="Browse", command=lambda: self.import_key())
+        password_button.pack(pady=10)
+
+        self.pop.mainloop()
 
     def import_key(self, public=True):
         """
         Function that imports a key from a file and adds it to the public/private key ring
         """
-        filepath = filedialog.askopenfilename()
-        if public:
-            public_key_ring.import_key(filepath)
-            self.update_public_key_ring()
-        else:
-            private_key_ring.import_key(filepath)
-            self.update_private_key_ring()
+
+        try:
+            filepath = filedialog.askopenfilename()
+            if public:
+                public_key_ring.import_key(self.name_entry.get(), self.email_entry.get(), filepath)
+                self.update_public_key_ring()
+            else:
+                private_key_ring.import_key(filepath)
+                self.update_private_key_ring()
+            messagebox.showinfo("Success", "Key imported successfully!")
+            self.pop.destroy()
+        except Exception as e:
+            # Add error message popup for each exception
+            messagebox.showerror("Error", str(e))
+
 
     def export_key(self):
         pass
