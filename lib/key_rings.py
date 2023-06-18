@@ -12,32 +12,48 @@ from .constants import *
 def generate_key(key_length, key_type):
     if key_type == RSA_ALGORITHM:
         key = RSA.generate(key_length)
+        key_id = key.n % (2 ** 64)
     elif key_type == ELGAMAL_ALGORITHM:
         key = ElGamalKey().generate_key(key_length)
+        key_id = key.p % (2 ** 64)
     elif key_type == DSA_ALGORITHM:
         key = DSA.generate(key_length)
+        key_id = key.p % (2 ** 64)
     else:
         raise ValueError('Invalid key type')
-    return key
+    return key, key_id
 
 
-def import_key(name: str, email: str, filepath: str, passphrase: str = None):
+def import_key(filepath: str, passphrase: str = None):
         filename = os.path.basename(filepath)
-        type = filename.split('.')[0].split(DATA_SEPARATOR)[-1]
+        key_type = filename.split('.')[0].split(DATA_SEPARATOR)[-1]
         with open(filename, 'rb') as f:
-            if type == RSA_ALGORITHM:
+            if key_type == RSA_ALGORITHM:
                 key = RSA.import_key(f.read(), passphrase=passphrase)
-                length = key.p.bit_length() // 8
-            elif type == ELGAMAL_ALGORITHM:
+                length = key.n.bit_length() // 8
+            elif key_type == ELGAMAL_ALGORITHM:
                 key = ElGamalKey.import_key(f.read(), passphrase=passphrase)
                 length = key.p.bit_length() // 8
-            elif type == DSA_ALGORITHM:
+            elif key_type == DSA_ALGORITHM:
                 key = DSA.import_key(f.read(), passphrase=passphrase)
                 length = key.p.bit_length() // 8
             else:
                 raise ValueError('Invalid key type')
             
-            return key, type, length
+            return key, key_type, length
+
+def export_key(key, key_type, filepath: str, private=False, passphrase: str = None):
+    if not private:
+        if key_type == RSA_ALGORITHM:
+            key = RSA.construct(key)
+        elif key_type == ELGAMAL_ALGORITHM:
+            key = ElGamalKey().construct(*key)
+        elif key_type == DSA_ALGORITHM:
+            key = DSA.construct(key)
+        else:
+            raise ValueError('Invalid key type')
+    with open(filepath + DATA_SEPARATOR + key_type + '.pem', 'wb') as f:
+        f.write(key.export_key(format='PEM', passphrase=passphrase))
 
 
 @implementer(ISubject)
@@ -192,13 +208,14 @@ class PGPPrivateKeyRing(BaseKeyRing):
             entry = self.index_by_key_id[key_id]
             encrypted_private_key = entry['encrypted_private_key']
             if entry['type'] == RSA_ALGORITHM:
+                print('RSA')
                 return self._decrypt_RSA_private_key(encrypted_private_key, passphrase), entry['key_length'], entry['type']
             elif entry['type'] == ELGAMAL_ALGORITHM:
                 return self._decrypt_ElGamal_private_key(encrypted_private_key, passphrase), entry['key_length'], entry['type']
             elif entry['type'] == DSA_ALGORITHM:
                 return self._decrypt_DSA_private_key(encrypted_private_key, passphrase), entry['key_length'], entry['type']
         except (ValueError, KeyError) as e:
-            raise Exception('Invalid passphrase')
+            raise e
 
     # def check_password(self, passphrase, key_id):
     #     h_pp_to_be_checked = SHA1.new(bytes(passphrase, 'utf-8')).digest()

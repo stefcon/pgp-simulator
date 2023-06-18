@@ -92,7 +92,9 @@ class GenerateKeyPage(tk.Frame):
         email = self.email_entry.get()
         key_length = int(self.key_length_dropdown.get())
         passphrase = self.passphrase_entry.get()
+        print("Gen passphrase:", passphrase)
         key_type = self.key_type.get()
+        print("Gen key type:", key_type)
 
         if not name or not email or not key_length or not key_type:
             messagebox.showerror("Error", "All fields are required")
@@ -102,10 +104,10 @@ class GenerateKeyPage(tk.Frame):
             messagebox.showerror("Error", "Key length can either be 1024 or 2048")
             return
         try:
-            key = generate_key(key_length, key_type)
+            key, key_id = generate_key(key_length, key_type)
 
             private_key_ring.add_entry(
-                key_id=key.public_key().export_key('DER')[-8:], 
+                key_id=key_id, 
                 key=key,
                 email=self.email_entry.get(),
                 name=self.name_entry.get(),
@@ -113,7 +115,7 @@ class GenerateKeyPage(tk.Frame):
                 key_length=key_length, 
                 type=key_type)
             public_key_ring.add_entry(
-                key_id=key.public_key().export_key('DER')[-8:], 
+                key_id=key_id, 
                 key=key,
                 email=self.email_entry.get(),
                 name=self.name_entry.get(),

@@ -7,12 +7,6 @@ from lib.interfaces import *
 
 @implementer(IObserver)
 class KeyVaultPage(tk.Frame):
-    """
-    Key Vault page that has the following strucutre:
-    - First row: label 'Public Key Ring' and a listbox with all the public keys
-    - Second row: label 'Private Key Ring' and a listbox with all the private keys
-    - Third row: button Three buttons with labels 'Generate', 'Import' and 'Export'
-    """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -62,7 +56,7 @@ class KeyVaultPage(tk.Frame):
         import_button = ttk.Button(row3_frame, text="Import", command=self.import_popup)
         import_button.pack(side=tk.LEFT, padx=5)
 
-        export_button = ttk.Button(row3_frame, text="Export", command=self.export_key)
+        export_button = ttk.Button(row3_frame, text="Export", command=self.export_popup)
         export_button.pack(side=tk.LEFT, padx=5)
 
         unselect_button = ttk.Button(row3_frame, text="Unselect All", command=self.deselect_all)
@@ -93,15 +87,14 @@ class KeyVaultPage(tk.Frame):
         """
         Function that updates the public key ring treeview
         """
-        
-        new_entry_values = (entry["key_id"], entry["timestamp"], entry["public_key"], entry["user_id"], entry["key_length"], entry["type"])
+        new_entry_values = (hex(entry["key_id"]), entry["timestamp"], entry["public_key"], entry["user_id"], entry["key_length"], entry["type"])
         self.public_key_ring_treeview.insert("", tk.END, values=new_entry_values)
 
     def update_private_key_ring(self, entry):
         """
         Function that updates the private key ring listbox
         """
-        new_entry_values = (entry["key_id"], entry["timestamp"], entry["public_key"], entry["user_id"], entry["encrypted_private_key"], entry["key_length"], entry["type"])
+        new_entry_values = (hex(entry["key_id"]), entry["timestamp"], entry["public_key"], entry["user_id"], entry["encrypted_private_key"], entry["key_length"], entry["type"])
         self.private_key_ring_treeview.insert("", tk.END, values=new_entry_values)
 
     def import_popup(self):
@@ -125,9 +118,8 @@ class KeyVaultPage(tk.Frame):
 
         self.pop.mainloop()
 
-
-    def export_key(self):
-        if len(self.private_key_ring_treeview.selection()) == 0 or len(self.public_key_ring_treeview.selection()) == 0:
+    def export_popup(self):
+        if len(self.private_key_ring_treeview.selection()) == 0 and len(self.public_key_ring_treeview.selection()) == 0:
             messagebox.showerror("Error", "Please select a key!")
             return
         if len(self.private_key_ring_treeview.selection()) > 1 or len(self.public_key_ring_treeview.selection()) > 1 or \
@@ -135,56 +127,94 @@ class KeyVaultPage(tk.Frame):
             messagebox.showerror("Error", "Please select only one key!")
             return
         
+        self.pop = tk.Toplevel(self.controller)
+        self.pop.title("Export key")
+        self.pop.geometry("300x200")
+        self.pop.resizable(False, False)
+
+        row_frame = ttk.Frame(self.pop)
+        row_frame.pack(pady=10)
+
+        filename_label = ttk.Label(self.pop, text="File name:")
+        filename_label.pack(pady=10)
+        self.filename_entry = ttk.Entry(self.pop)
+        self.filename_entry.pack()
+
+        enter_button = ttk.Button(self.pop, text="✔", command=self.export_key)
+        enter_button.pack(pady=10)
+
+        self.pop.mainloop()
+
+
+    def export_key(self):
+        # Destroy popup
+        
         if len(self.private_key_ring_treeview.selection()) > 0:
             # Needs a passphrase for exporting the private key
-            self.pop = tk.Toplevel(self.controller)
-            self.pop.title("Insert passphrase")
-            self.pop.geometry("300x200")
-            self.pop.resizable(False, False)
+            self.pop1 = tk.Toplevel(self.controller)
+            self.pop1.title("Insert passphrase")
+            self.pop1.geometry("300x200")
+            self.pop1.resizable(False, False)
 
-            name_label = ttk.Label(self.pop, text="Passphrase:")
+            name_label = ttk.Label(self.pop1, text="Passphrase:")
             name_label.pack(pady=10)
-            self.passphrase_entry = ttk.Entry(self.pop, show="*")
+            self.passphrase_entry = ttk.Entry(self.pop1, show="*")
             self.passphrase_entry.pack()
 
-            password_button = ttk.Button(self.pop, text="✔", command=self.export_private_key)
+            password_button = ttk.Button(self.pop1, text="✔", command=self.export_private_key)
             password_button.pack(pady=10)
 
-            self.pop.mainloop()
+            self.pop1.mainloop()
         else:
             key_id = self.public_key_ring_treeview.item(self.public_key_ring_treeview.selection()[0])["values"][0]
-            key = public_key_ring.get_entry(key_id=key_id)["key"]
+            key_id = int(key_id, base=16)
+
+            key = public_key_ring.get_entry_by_key_id(key_id)["public_key"]
+            key_type = public_key_ring.get_entry_by_key_id(key_id)["type"]
+
+            export_key(key, key_type, self.filename_entry.get())
+            self.pop.destroy()
 
     def export_private_key(self):
         try:
             key_id = self.private_key_ring_treeview.item(self.private_key_ring_treeview.selection()[0])["values"][0]
-            key = private_key_ring.get_entry(key_id=key_id)["key"]
-            key.export_key('DER', passphrase=self.passphrase_entry.get(), randfunc=None)
+            key_id = int(key_id, base=16)
+     
+            key, key_length, key_type =  private_key_ring.get_decrypted_private_key(key_id=key_id, passphrase=self.passphrase_entry.get())
+
+            export_key(key, key_type, self.filename_entry.get(),  private=True, passphrase=self.passphrase_entry.get())
+            print("Exported private key")
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", "Wrong passphrase!")
+            raise
         finally:
             self.pop.destroy()
+            self.pop1.destroy()
 
     def update_key_rings(self, key, length, key_type):
         try:
+            if key_type == RSA_ALGORITHM:
+                key_id = key.n % (2**64)
+            else:
+                key_id = key.p % (2**64)
             if key.has_private():
                 private_key_ring.add_entry(
-                        key_id=key.public_key().export_key('DER')[-8:], 
+                        key_id=key_id, 
                         key=key,
                         email=self.email_entry.get(),
                         name=self.name_entry.get(),
-                        passphrase='asd', # TODO: fix logic when importing private keys
+                        passphrase=self.passphrase_entry.get(),
                         key_length=length, 
                         type=key_type)
                 # Only if private part doesn't throw an error!
-                public_key_ring.add_entry(
-                    key_id=key.public_key().export_key('DER')[-8:], 
-                    key=key,
-                    email=self.email_entry.get(),
-                    name=self.name_entry.get(),
-                    key_length=length, 
-                    type=key_type)
-                messagebox.showinfo("Success", "Key imported successfully!")
+            public_key_ring.add_entry(
+                key_id=key_id, 
+                key=key,
+                email=self.email_entry.get(),
+                name=self.name_entry.get(),
+                key_length=length,
+                type=key_type)
+            messagebox.showinfo("Success", "Key imported successfully!")
         except Exception as e:
             # Add error message popup for each exception
             messagebox.showerror("Error", str(e))
@@ -193,7 +223,7 @@ class KeyVaultPage(tk.Frame):
 
     def try_to_decrypt(self, filepath, passphrase):
         try:
-            key, key_type, key_length = import_key(self.name_entry.get(), self.email_entry.get(), filepath, passphrase)
+            key, key_type, key_length = import_key(filepath, passphrase)
             self.update_key_rings(key, key_length, key_type)
         except Exception as e:
             messagebox.showerror("Error", "Wrong passphrase!")
@@ -208,7 +238,8 @@ class KeyVaultPage(tk.Frame):
         """
         filepath = filedialog.askopenfilename()
         try:
-            key, key_type, key_length = import_key(self.name_entry.get(), self.email_entry.get(), filepath)
+            key, key_type, key_length = import_key(filepath)
+            self.update_key_rings(key, key_length, key_type)
         except Exception as e:
             if str(e) == "PEM is encrypted, but no passphrase available":
                 self.pop2 = tk.Toplevel(self.controller)
@@ -225,12 +256,8 @@ class KeyVaultPage(tk.Frame):
                 password_button.pack(pady=10)
 
                 self.pop2.mainloop()
-        self.update_key_rings(key, key_length, key_type)
-            
-
-
-    def export_key(self):
-        pass
+            else:
+                raise e
 
 
 KEY_VAULT_PAGE = KeyVaultPage
