@@ -7,6 +7,24 @@ from .ElGamal import ElGamalKey
 from .AES import AES_Wrapper
 from .constants import *
 
+def import_key(name: str, email: str, filepath: str):
+        filename = os.path.basename(filepath)
+        type = filename.split('.')[0].split(DATA_SEPARATOR)[-1]
+        with open(filename, 'rb') as f:
+            if type == RSA_ALGORITHM:
+                key = RSA.import_key(f.read())
+                length = key.p.bit_length() // 8
+            elif type == ELGAMAL_ALGORITHM:
+                key = ElGamalKey.import_key(f.read())
+                length = key.p.bit_length() // 8
+            elif type == DSA_ALGORITHM:
+                key = DSA.import_key(f.read())
+                length = key.p.bit_length() // 8
+            else:
+                raise ValueError('Invalid key type')
+            
+            return key, type, length
+
 class PGPPublicKeyRing:
     """
     PGP public key ring class that contains a list of private keys and public keys with following attributes:
@@ -69,27 +87,6 @@ class PGPPublicKeyRing:
         if entries is not None:
             for entry in entries:
                 self.index_by_key_id.pop(entry['key_id'], None)
-
-    def import_key(self, name: str, email: str, filepath: str):
-        print(name)
-        print(email)
-        print(filepath)
-        filename = os.path.basename(filepath)
-        type = filename.split('.')[0].split(DATA_SEPARATOR)[-1]
-        with open(filename, 'rb') as f:
-            if type == RSA_ALGORITHM:
-                key = RSA.import_key(f.read())
-                length = key.p.bit_length() // 8
-            elif type == ELGAMAL_ALGORITHM:
-                key = ElGamalKey.import_key(f.read())
-                length = key.p.bit_length() // 8
-            elif type == DSA_ALGORITHM:
-                key = DSA.import_key(f.read())
-                length = key.p.bit_length() // 8
-            else:
-                raise ValueError('Invalid key type')
-            
-            self.add_entry(key_id=key.public_key().export_key('DER')[-8:], key=key, email=email, name=name, key_length=length, type=type)
 
     def export_key(self, key_id: str, filepath: str):
         pass

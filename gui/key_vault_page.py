@@ -22,7 +22,6 @@ class KeyVaultPage(tk.Frame):
         # Initializing public key ring
         public_key_ring_label = ttk.Label(row1_frame, text="Public Key Ring")
         public_key_ring_label.pack(side=tk.LEFT, padx=5)
-        # self.public_key_ring_listbox = tk.Listbox(row1_frame, height=10, width=50)
 
         public_key_ring_column_names = ("KeyID", "Timestamp", "Public Key", "UserID", "Key length", "Encryption type")
         public_key_ring_columns = ("key_id", "timestamp", "public_key", "user_id", "key_length", "type")
@@ -40,8 +39,14 @@ class KeyVaultPage(tk.Frame):
         private_key_ring_label = ttk.Label(row2_frame, text="Private Key Ring")
         private_key_ring_label.pack(side=tk.LEFT, padx=5)
 
-        self.private_key_ring_listbox = tk.Listbox(row2_frame, height=10, width=50)
-        self.private_key_ring_listbox.pack(side=tk.LEFT, padx=5)
+        private_key_ring_column_names = ("KeyID", "Timestamp", "Public Key", "UserID", "Encrypted Private Key", "Key length", "Encryption type")
+        private_key_ring_columns = ("key_id", "timestamp", "public_key", "user_id", "encrypted_private_key" , "key_length", "type")
+        self.private_key_ring_treeview = ttk.Treeview(row2_frame, columns=private_key_ring_columns, show='headings')
+        for c, n in zip(private_key_ring_columns, private_key_ring_column_names):
+            self.private_key_ring_treeview.heading(c, text=n)
+        self.update_private_key_ring()
+
+        self.private_key_ring_treeview.pack(side=tk.LEFT, padx=5)
 
         # Third row
         row3_frame = ttk.Frame(self)
@@ -64,14 +69,16 @@ class KeyVaultPage(tk.Frame):
         Function that updates the public key ring treeview
         """
         for row in public_key_ring.get_all_entries():
-            self.public_key_ring_treeview.insert("", tk.END, values=(row["key_id"], row["timestamp"], row["public_key"], row["user_id"], row["key_length"], row["type"]))
+            self.public_key_ring_treeview.insert("", tk.END, 
+                values=(row["key_id"], row["timestamp"], row["public_key"], row["user_id"], row["key_length"], row["type"]))
 
     def update_private_key_ring(self):
         """
         Function that updates the private key ring listbox
         """
         for row in private_key_ring.get_all_entries():
-            self.private_key_ring_listbox.insert("", tk.END, row) # TODO: change this to something that works
+            self.private_key_ring_treeview.insert("", tk.END, 
+                values=(row["key_id"], row["timestamp"], row["public_key"], row["user_id"], row["encrypted_private_key"], row["key_length"], row["type"]))
 
     def import_popup(self):
         self.pop = tk.Toplevel(self.controller)
@@ -98,20 +105,34 @@ class KeyVaultPage(tk.Frame):
         """
         Function that imports a key from a file and adds it to the public/private key ring
         """
-
         try:
             filepath = filedialog.askopenfilename()
-            if public:
-                public_key_ring.import_key(self.name_entry.get(), self.email_entry.get(), filepath)
-                self.update_public_key_ring()
-            else:
-                private_key_ring.import_key(filepath)
+            key, type, length = import_key(self.name_entry.get(), self.email_entry.get(), filepath)
+            if key.has_private():
+                private_key_ring.add_entry(
+                    key_id=key.public_key().export_key('DER')[-8:], 
+                    key=key,
+                    email=self.email_entry.get(),
+                    name=self.name_entry.get(),
+                    passphrase='asd', # TODO: fix logic when importing private keys
+                    key_length=length, 
+                    type=type)
                 self.update_private_key_ring()
+            # Only if private part doesn't throw an error!
+            public_key_ring.add_entry(
+                key_id=key.public_key().export_key('DER')[-8:], 
+                key=key,
+                email=self.email_entry.get(),
+                name=self.name_entry.get(),
+                key_length=length, 
+                type=type)
+            self.update_public_key_ring()
             messagebox.showinfo("Success", "Key imported successfully!")
-            self.pop.destroy()
         except Exception as e:
             # Add error message popup for each exception
             messagebox.showerror("Error", str(e))
+        finally:
+            self.pop.destroy()
 
 
     def export_key(self):
