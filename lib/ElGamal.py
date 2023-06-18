@@ -55,16 +55,19 @@ class ElGamalKey:
 
     def has_private(self):
         return self.has_private_key
-        
+    
     def public_key(self):
+        return ElGamalKey.construct(self.p, self.g, self.y)
+        
+    def public_key_components(self):
         return (self.p, self.g, self.y)
     
-    def private_key(self):
+    def private_key_components(self):
         if self.has_private_key:
             return (self.p, self.g, self.y, self.x)
         raise ValueError('No private key')
 
-    def export_key(self):
+    def export_key(self, format='PEM'):
         """
         Export ElGamal key into a PEM format.
         """
@@ -87,11 +90,13 @@ class ElGamalKey:
                                                                       self.y,]),
                                                          DerNull()
                                                          )
-        from Crypto.IO import PEM
+        if format == 'PEM':
+            from Crypto.IO import PEM
 
-        pem_str = PEM.encode(binary_key, key_type, None, None)
-        return tobytes(pem_str)
-    
+            pem_str = PEM.encode(binary_key, key_type, None, None)
+            return tobytes(pem_str)
+        return binary_key
+        
     def import_key(extern_key):
         """
         Import an ElGamal key (public or private half), encoded in standard PEM format
@@ -123,13 +128,13 @@ class ElGamal_Wrapper:
         return ElGamalKey.construct(p, g, y, x)
 
     def _encrypt(self, m, k):
-        p, g, y = self.key.public_key()
+        p, g, y = self.key.public_key_components()
         a = pow(g, k, p)
         b = (m * pow(y, k, p)) % p
         return (a, b)
     
     def _decrypt(self, m):
-        p, g, y, x = self.key.private_key()
+        p, g, y, x = self.key.private_key_components()
         a, b = m
         
         r = getRandomRange(2, p-1)

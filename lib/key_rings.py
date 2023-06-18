@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 import datetime
 from Crypto.Hash import SHA1
@@ -69,6 +70,24 @@ class PGPPublicKeyRing:
             for entry in entries:
                 self.index_by_key_id.pop(entry['key_id'], None)
 
+    def import_key(self, filepath: str):
+        filename = os.path.basename(filepath)
+        user_id, length, type = filename.split('.')[0].split(DATA_SEPARATOR)
+        with open(filename, 'rb') as f:
+            if type == RSA_ALGORITHM:
+                key = RSA.import_key(f.read())
+            elif type == ELGAMAL_ALGORITHM:
+                key = ElGamalKey.import_key(f.read())
+            elif type == DSA_ALGORITHM:
+                key = DSA.import_key(f.read())
+            else:
+                raise ValueError('Invalid key type')
+            
+            self.add_entry(key_id=key.public_key().export_key('DER')[-8:], key=key, email=user_id, name=user_id, key_length=length, type=type)
+
+    def export_key(self, key_id: str, filepath: str):
+        pass
+
     def get_all_entries(self):
         return list(self.index_by_key_id.values())
     
@@ -90,7 +109,6 @@ class PGPPrivateKeyRing(PGPPublicKeyRing):
         - Public Key
         - Encrypted Private Key
         - User ID
-        - H(Passphrase)
     Structure can be indexed by both Key ID and User ID.
     """
     def __init__(self):
