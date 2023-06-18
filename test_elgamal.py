@@ -11,10 +11,10 @@ def main():
 
     print(str_key)
     with open('elgamal_key.pem', 'wb') as f:
-        f.write(elgamal.key.export_key())
+        f.write(elgamal.key.export_key(passphrase='123'))
     
     with open('elgamal_key.pem', 'rb') as f:
-        elgamal.key = ElGamalKey.import_key(f.read())
+        elgamal.key = ElGamalKey.import_key(f.read(), passphrase='123')
     
     str_read_key = elgamal.key.__str__()
     if str_key == str_read_key:
@@ -24,10 +24,10 @@ def main():
     print("PRoba:", drugi.p.bit_length())
     drugi_str = drugi.__str__()
     with open('drugi.pem', 'wb') as f:
-        f.write(drugi.export_key(passphrase='123'))
+        f.write(drugi.export_key())
 
     with open('drugi.pem', 'rb') as f:
-        drugi = ElGamalKey.import_key(f.read(), passphrase='123')
+        drugi = ElGamalKey.import_key(f.read())
 
     drugi_str_read = drugi.__str__()
     if drugi_str == drugi_str_read:

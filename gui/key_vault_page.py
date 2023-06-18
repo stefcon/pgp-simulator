@@ -144,51 +144,89 @@ class KeyVaultPage(tk.Frame):
 
             name_label = ttk.Label(self.pop, text="Passphrase:")
             name_label.pack(pady=10)
-            self.name_entry = ttk.Entry(self.pop)
-            self.name_entry.pack()
+            self.passphrase_entry = ttk.Entry(self.pop, show="*")
+            self.passphrase_entry.pack()
 
             password_button = ttk.Button(self.pop, text="✔", command=self.export_private_key)
             password_button.pack(pady=10)
 
             self.pop.mainloop()
-
-
-            key_id = self.private_key_ring_treeview.item(self.private_key_ring_treeview.selection()[0])["values"][0]
-            key = private_key_ring.get_entry(key_id=key_id)["key"]
         else:
             key_id = self.public_key_ring_treeview.item(self.public_key_ring_treeview.selection()[0])["values"][0]
             key = public_key_ring.get_entry(key_id=key_id)["key"]
 
-    def import_key(self, public=True):
-        """
-        Function that imports a key from a file and adds it to the public/private key ring
-        """
+    def export_private_key(self):
         try:
-            filepath = filedialog.askopenfilename()
-            key, type, length = import_key(self.name_entry.get(), self.email_entry.get(), filepath)
+            key_id = self.private_key_ring_treeview.item(self.private_key_ring_treeview.selection()[0])["values"][0]
+            key = private_key_ring.get_entry(key_id=key_id)["key"]
+            key.export_key('DER', passphrase=self.passphrase_entry.get(), randfunc=None)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        finally:
+            self.pop.destroy()
+
+    def update_key_rings(self, key, length, key_type):
+        try:
             if key.has_private():
                 private_key_ring.add_entry(
+                        key_id=key.public_key().export_key('DER')[-8:], 
+                        key=key,
+                        email=self.email_entry.get(),
+                        name=self.name_entry.get(),
+                        passphrase='asd', # TODO: fix logic when importing private keys
+                        key_length=length, 
+                        type=key_type)
+                # Only if private part doesn't throw an error!
+                public_key_ring.add_entry(
                     key_id=key.public_key().export_key('DER')[-8:], 
                     key=key,
                     email=self.email_entry.get(),
                     name=self.name_entry.get(),
-                    passphrase='asd', # TODO: fix logic when importing private keys
                     key_length=length, 
-                    type=type)
-            # Only if private part doesn't throw an error!
-            public_key_ring.add_entry(
-                key_id=key.public_key().export_key('DER')[-8:], 
-                key=key,
-                email=self.email_entry.get(),
-                name=self.name_entry.get(),
-                key_length=length, 
-                type=type)
-            messagebox.showinfo("Success", "Key imported successfully!")
+                    type=key_type)
+                messagebox.showinfo("Success", "Key imported successfully!")
         except Exception as e:
             # Add error message popup for each exception
             messagebox.showerror("Error", str(e))
         finally:
             self.pop.destroy()
+
+    def try_to_decrypt(self, filepath, passphrase):
+        try:
+            key, key_type, key_length = import_key(self.name_entry.get(), self.email_entry.get(), filepath, passphrase)
+            self.update_key_rings(key, key_length, key_type)
+        except Exception as e:
+            messagebox.showerror("Error", "Wrong passphrase!")
+            return
+        finally:
+            self.pop2.destroy()
+        
+
+    def import_key(self):
+        """
+        Function that imports a key from a file and adds it to the public/private key ring
+        """
+        filepath = filedialog.askopenfilename()
+        try:
+            key, key_type, key_length = import_key(self.name_entry.get(), self.email_entry.get(), filepath)
+        except Exception as e:
+            if str(e) == "PEM is encrypted, but no passphrase available":
+                self.pop2 = tk.Toplevel(self.controller)
+                self.pop2.title("Insert passphrase")
+                self.pop2.geometry("300x200")
+                self.pop2.resizable(False, False)
+
+                name_label = ttk.Label(self.pop2, text="Passphrase:")
+                name_label.pack(pady=10)
+                self.passphrase_entry = ttk.Entry(self.pop2, show="*")
+                self.passphrase_entry.pack()
+
+                password_button = ttk.Button(self.pop2, text="✔", command=lambda: self.try_to_decrypt(filepath, self.passphrase_entry.get()))
+                password_button.pack(pady=10)
+
+                self.pop2.mainloop()
+        self.update_key_rings(key, key_length, key_type)
+            
 
 
     def export_key(self):

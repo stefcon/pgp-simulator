@@ -21,18 +21,18 @@ def generate_key(key_length, key_type):
     return key
 
 
-def import_key(name: str, email: str, filepath: str):
+def import_key(name: str, email: str, filepath: str, passphrase: str = None):
         filename = os.path.basename(filepath)
         type = filename.split('.')[0].split(DATA_SEPARATOR)[-1]
         with open(filename, 'rb') as f:
             if type == RSA_ALGORITHM:
-                key = RSA.import_key(f.read())
+                key = RSA.import_key(f.read(), passphrase=passphrase)
                 length = key.p.bit_length() // 8
             elif type == ELGAMAL_ALGORITHM:
-                key = ElGamalKey.import_key(f.read())
+                key = ElGamalKey.import_key(f.read(), passphrase=passphrase)
                 length = key.p.bit_length() // 8
             elif type == DSA_ALGORITHM:
-                key = DSA.import_key(f.read())
+                key = DSA.import_key(f.read(), passphrase=passphrase)
                 length = key.p.bit_length() // 8
             else:
                 raise ValueError('Invalid key type')
