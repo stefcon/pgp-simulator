@@ -1,7 +1,7 @@
 from .index import *
 from .constants import *
 from .interfaces import IEncryption
-
+from .exceptions import NoPassphrase
 # --------------- Concatenation (First step) ---------------
 def concatenate_with_timestamp(msg: Msg, filename: str):
     ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
@@ -25,11 +25,11 @@ def unzip_data(msg: Msg, _):
 
 # --------------- Radix Conversion ---------------
 def radix_convert(msg: Msg, _):
-    msg.data = b64encode(msg.data).decode('ascii')
+    msg.data = b64encode(msg.data)
     return msg
 
 def radix_deconvert(msg: Msg, _):
-    msg.data = b64decode(msg.data)
+    msg.data = b64decode(msg.data + b'==')
     return msg
 
 # --------------- Serialization of message ---------------
@@ -66,6 +66,7 @@ def encryption_send_pipeline(msg: Msg, wrapper_and_key_id):
         encrypted_session_key = encrypted_session_key_tuple[0] + encrypted_session_key_tuple[1]
     elif entry['type'] == DSA_ALGORITHM:
         # Ne sme DSA za enkripciju, samo za potpis
+
         raise ValueError('Invalid key type')
     msg.data = key_id.to_bytes(KEY_ID_LEN, byteorder='big') + encrypted_session_key + ciphertext
     return msg
@@ -73,8 +74,11 @@ def encryption_send_pipeline(msg: Msg, wrapper_and_key_id):
 
 def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
     cipher_wrapper: IEncryption = wrapper_and_passphrase[0]
-    passphrase = wrapper_and_passphrase[1]
     key_id = int.from_bytes(msg.data[0:KEY_ID_LEN], byteorder='big')
+    passphrase_as_list = wrapper_and_passphrase[1]
+    if len(passphrase_as_list) == 0:
+        raise NoPassphrase(key_id)
+    passphrase = passphrase_as_list[0]
     key, cipher_length, type = private_key_ring.get_decrypted_private_key(key_id, passphrase)
     if type == RSA_ALGORITHM:
         encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length], msg.data[KEY_ID_LEN + cipher_length:]
