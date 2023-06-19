@@ -1,7 +1,7 @@
 from .index import *
 from .constants import *
 from .interfaces import IEncryption
-from .exceptions import NoPassphrase
+from .exceptions import *
 # --------------- Concatenation (First step) ---------------
 def concatenate_with_timestamp(msg: Msg, filename: str):
     ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
@@ -79,7 +79,10 @@ def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
     if len(passphrase_as_list) == 0:
         raise NoPassphrase(key_id)
     passphrase = passphrase_as_list[0]
-    key, cipher_length, type = private_key_ring.get_decrypted_private_key(key_id, passphrase)
+    try:
+        key, cipher_length, type = private_key_ring.get_decrypted_private_key(key_id, passphrase)
+    except ValueError:
+        raise WrongPassphrase(key_id)
     if type == RSA_ALGORITHM:
         encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length], msg.data[KEY_ID_LEN + cipher_length:]
         asym_cipher = RSA_Wrapper(key)
@@ -121,6 +124,7 @@ def signature_receive_pipeline(msg: Msg, _):
 
     entry = public_key_ring.get_entry_by_key_id(key_id)
 
+    msg.signature_id = key_id
 
     if entry['type'] == RSA_ALGORITHM:
         sig_length = RSA_PSS_Wrapper.signature_length(entry['key_length'])
@@ -141,6 +145,6 @@ def signature_receive_pipeline(msg: Msg, _):
         raise ValueError('Invalid key type')
 
     if (not verifier.verify(msg.data, signature)):
-        raise Exception('Signature verification failed')
+        raise BadSignature('Signature verification failed')
     return msg
 

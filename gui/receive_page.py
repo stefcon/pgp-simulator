@@ -1,10 +1,11 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-
+from tkinter import messagebox
 from page_selector import *
 from lib.key_rings import *
 from lib.pipeline import ReceivePipeline
 from lib.exceptions import NoPassphrase
+from lib.exceptions import *
 
 @implementer(IObserver)
 class ReceivePage(tk.Frame):
@@ -13,13 +14,12 @@ class ReceivePage(tk.Frame):
         self.controller = controller
         self.receive_pipeline = None
 
-
         #grid
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(4, weight=1)
 
         #Graphic elements
-        from_label = ttk.Label(self, text="From:")
+        to_label = ttk.Label(self, text="To:")
         public_key_label = ttk.Label(self, text="Private Key:")
         password_label = ttk.Label(self, text="Password:")
 
@@ -33,55 +33,120 @@ class ReceivePage(tk.Frame):
         self.bind("<FocusOut>", lambda event: self.path_text.insert(tk.END, "Choose a file") if self.path_text.get(1.0, tk.END).strip() == "" else None)
 
         # First row
-        from_label.grid(row=1, column=1, padx=5)
+        to_label.grid(row=1, column=1, padx=5)
 
-        self.user_id_var = tk.StringVar()
-        user_id_label = ttk.Label(self, textvariable=self.user_id_var)
+        self.to_id_var = tk.StringVar()
+        self.to_id_var.set("Unknown")
+        user_id_label = ttk.Label(self, textvariable=self.to_id_var)
         user_id_label.grid(row=1, column=2, padx=5)
 
         # Second row
         public_key_label.grid(row=2, column=1, padx=5)
 
         self.public_key_id_var = tk.StringVar()
+        self.public_key_id_var.set("Unknown")
         public_key_id_label = ttk.Label(self, textvariable=self.public_key_id_var)
         public_key_id_label.grid(row=2, column=2, padx=5)
 
         # Third row
         password_label.grid(row=3, column=1, padx=5)
 
-        self.password_entry = ttk.Entry(self, show="*")
+        self.password_entry = ttk.Entry(self, show="*", state="disabled")
         self.password_entry.grid(row=3, column=2, padx=5)
 
         # Fourth row
-        check_button = ttk.Button(self, text="✔", command=lambda: self.receive_pipeline.run_with_passphrase(self.password_entry.get().strip()))
-        check_button.grid(row=4, column=1, padx=5, pady=10)
 
-        back_button = ttk.Button(self, text="Back", command=lambda: controller.display_frame(page_selector(HOME)))
-        back_button.grid(row=4, column=2, padx=5, pady=10)
+        from_label = ttk.Label(self, text="From:")
+        from_label.grid(row=5, column=1, padx=5 )
+
+        self.from_id_var = tk.StringVar()
+        self.from_id_var.set("Unknown")
+        from_id_label = ttk.Label(self, textvariable=self.from_id_var)
+        from_id_label.grid(row=5, column=2, padx=5)
+
+        self.verified_var = tk.StringVar()
+        self.verified_var.set("Unknown")
+        verified_label = ttk.Label(self, text="Verified:")
+        verified_label.grid(row=6, column=1, padx=5)
+        verified = ttk.Label(self, textvariable=self.verified_var)
+        verified.grid(row=6, column=2, padx=5)
+
+        self.msg_label = ttk.Label(self, text="Message:")
+        self.msg_label.grid(row=7, column=1, padx=5, pady=10)
+        self.msg_text = tk.Text(self, height=10, width=50, state="disabled")
+        self.msg_text.grid(row=7, column=2, padx=5, pady=10)
+
+        check_button = ttk.Button(self, text="✔", command=lambda: self.run_with_passphrase())
+        check_button.grid(row=8, column=1, padx=5, pady=10)
+
+        back_button = ttk.Button(self, text="Save message", command=self.save_message)
+        back_button.grid(row=8, column=2, padx=5, pady=10)
+
+        back_button = ttk.Button(self, text="Back", command=self.back_and_reset)
+        back_button.grid(row=8, column=3, padx=5, pady=10)
+        
 
     def browse_file(self):
         filepath = tk.filedialog.askopenfilename()
         self.path_text.delete(1.0, tk.END)
-        self.path_text.insert(tk.END, filepath)
+        self.path_text.insert(tk.END, os.path.abspath(filepath))
         self.receive_pipeline = ReceivePipeline(self.path_text.get(1.0, tk.END).strip())
         self.receive_pipeline.attach(self)
         msg = self.receive_pipeline.run()
+        if msg is not None:
+            try:
+                self.update_frame()
+            except BadSignature as bp:
+                self.from_id_var.set(hex(self.receive_pipeline.msg.signature_id))
+                self.verified_var.set('Bad Signature')
 
+    def update_frame(self):
+        self.msg_text.configure(state="normal")
+        self.msg_text.insert(tk.END, self.receive_pipeline.msg.data.decode('utf-8'))
+        self.msg_text.configure(state="disabled")
+        if self.receive_pipeline.msg.signature_id is not None:
+                self.from_id_var.set(hex(self.receive_pipeline.msg.signature_id))
+                self.verified_var.set('Good Signature')
 
+    def run_with_passphrase(self):
+        try:
+            self.receive_pipeline.run_with_passphrase(self.password_entry.get().strip())
+            self.update_frame()
+        except WrongPassphrase as wp:
+            messagebox.showerror("Error", "Wrong passphrase!")
+            return
+        except BadSignature as bp:
+            self.from_id_var.set(hex(self.receive_pipeline.msg.signature_id))
+            self.verified_var.set('Bad Signature')
+            return
 
-    # def receive_file(self):
-    #     #Prvo pronadji odgovarajuci privatni kljuc
-    #     rp = ReceivePipeline(self.path_text.get(1.0, tk.END).strip())
-    #     rp.attach(self)
-    #     rp.run()
-    #
-    #     #Nakon unosa sifre procitaj poruku
-    #     rp.run()
-    #
-    #
+    def back_and_reset(self):
+        """
+        Resets the page to the default state
+        """
+        self.to_id_var.set("Unknown")
+        self.public_key_id_var.set("Unknown")
+        self.password_entry.configure(state="disabled")
+        self.password_entry.delete(0, tk.END)
+        self.path_text.delete(1.0, tk.END)
+        self.path_text.insert(tk.END, "Choose a file")
+        self.from_id_var.set("Unknown")
+        self.verified_var.set("Unknown")
+        self.msg_text.configure(state="normal")
+        self.msg_text.delete(1.0, tk.END)
+        self.msg_text.configure(state="disabled")
+
+        self.controller.display_frame(page_selector(HOME))
+
+    def save_message(self):
+        filename = tk.filedialog.asksaveasfilename()
+        with open(filename, 'w') as f:
+            f.write(self.msg_text.get(1.0, tk.END).strip())
+
     def update(self, subject: ReceivePipeline, keyID):
         self.public_key_id_var.set(str(hex(keyID)))
-        self.user_id_var.set(public_key_ring.get_entry_by_key_id(keyID)['user_id'])
+        self.to_id_var.set(public_key_ring.get_entry_by_key_id(keyID)['user_id'])
+        self.password_entry.configure(state="normal")
 
 
 

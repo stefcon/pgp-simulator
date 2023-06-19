@@ -7,6 +7,7 @@ from page_selector import *
 from lib.key_rings import *
 from lib.Msg import Msg
 from lib.pipeline import SendPipeline
+import os
 
 
 @implementer(IObserver)
@@ -206,8 +207,9 @@ class SendPage(tk.Frame):
 
             send_from_key_id = int(self.key_id1_dropdown.get())
             send_to_key_id = int(self.private_key_dropdown.get())
-
-            send_pipeline = SendPipeline(msg, self.path_text.get('1.0', tk.END).strip(), send_from_key_id, send_to_key_id, self.password_entry.get().strip())
+            
+            filepath = os.path.abspath(self.path_text.get('1.0', tk.END).strip())
+            send_pipeline = SendPipeline(msg, filepath, send_from_key_id, send_to_key_id, self.password_entry.get().strip())
             msg = send_pipeline.run()
             messagebox.showinfo("Success", "Message sent successfully!")
         except Exception as e:

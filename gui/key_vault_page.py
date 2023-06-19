@@ -258,7 +258,11 @@ class KeyVaultPage(tk.Frame):
 
                 self.pop2.mainloop()
             else:
-                raise e
+                messagebox.showerror("Error", str(e))
+                return
+        finally:
+            if self.pop is not None:
+                self.pop.destroy()
 
 
 KEY_VAULT_PAGE = KeyVaultPage
