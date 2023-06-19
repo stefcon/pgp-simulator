@@ -25,7 +25,7 @@ def unzip_data(msg: Msg, _):
 
 # --------------- Radix Conversion ---------------
 def radix_convert(msg: Msg, _):
-    msg.data = b64encode(msg.data).decode('ascii')
+    msg.data = b64encode(msg.data)
     return msg
 
 def radix_deconvert(msg: Msg, _):
@@ -67,6 +67,8 @@ def encryption_send_pipeline(msg: Msg, wrapper_and_key_id):
     elif entry['type'] == DSA_ALGORITHM:
         # Ne sme DSA za enkripciju, samo za potpis
         raise ValueError('Invalid key type')
+    print("session", encrypted_session_key)
+    print("session", len(encrypted_session_key))
     msg.data = key_id.to_bytes(KEY_ID_LEN, byteorder='big') + encrypted_session_key + ciphertext
     return msg
 
@@ -76,6 +78,7 @@ def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
     passphrase = wrapper_and_passphrase[1]
     key_id = int.from_bytes(msg.data[0:KEY_ID_LEN], byteorder='big')
     key, cipher_length, type = private_key_ring.get_decrypted_private_key(key_id, passphrase)
+    print(cipher_length)
     if type == RSA_ALGORITHM:
         encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length], msg.data[KEY_ID_LEN + cipher_length:]
         asym_cipher = RSA_Wrapper(key)
@@ -111,6 +114,7 @@ def signature_send_pipeline(msg: Msg, wrapper_key_id_and_pass):
 
 
 def signature_receive_pipeline(msg: Msg, _):
+    print(msg.data)
     ts, key_id = \
     msg.data[0:TIMESTAMP_LEN], \
     int.from_bytes(msg.data[TIMESTAMP_LEN:TIMESTAMP_LEN+KEY_ID_LEN], byteorder='big')

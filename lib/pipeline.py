@@ -64,9 +64,9 @@ class ReceivePipeline:
         if self.msg.enc is not None:
             self.steps.append(decryption_receive_pipeline)
             if self.msg.enc == AES_ALGORITHM:
-                self.params.append((AES_Wrapper, 'aaa'))
+                self.params.append((AES_Wrapper, '123'))
             elif self.msg.enc == DES3_ALGORITHM:
-                self.params.append((DES3_Wrapper, 'aaa'))
+                self.params.append((DES3_Wrapper, '123'))
 
         # Step 3: Unzip
         if self.msg.uze_zip:
