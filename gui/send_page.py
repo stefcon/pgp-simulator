@@ -167,8 +167,8 @@ class SendPage(tk.Frame):
 
 
     def on_auth_selected(self, event):
-        if self.authentication_output.get() is not None and \
-                    self.authentication_output.get() != "None":
+        if (self.authentication_output.get() is not None and \
+                    self.authentication_output.get() != "None") and not self.authentication_enable.get():
             self.password_entry.configure(state="normal")
         else:
             self.password_entry.configure(state="disabled")
@@ -207,7 +207,7 @@ class SendPage(tk.Frame):
 
             send_from_key_id = int(self.key_id1_dropdown.get())
             send_to_key_id = int(self.private_key_dropdown.get())
-            
+
             filepath = os.path.abspath(self.path_text.get('1.0', tk.END).strip())
             send_pipeline = SendPipeline(msg, filepath, send_from_key_id, send_to_key_id, self.password_entry.get().strip())
             msg = send_pipeline.run()
