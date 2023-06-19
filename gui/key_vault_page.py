@@ -218,6 +218,7 @@ class KeyVaultPage(tk.Frame):
         except Exception as e:
             # Add error message popup for each exception
             messagebox.showerror("Error", str(e))
+            # raise e
         finally:
             self.pop.destroy()
 

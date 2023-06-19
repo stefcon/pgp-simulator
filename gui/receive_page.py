@@ -82,10 +82,15 @@ class ReceivePage(tk.Frame):
 
         name_label = ttk.Label(self.pop, text="KeyID:")
         name_label.pack(pady=10)
-        self.passphrase_entry = ttk.Entry(self.pop)
+        keyid_label = ttk.Label(self.pop, text=str(hex(keyID)))
+        keyid_label.pack(pady=10)
+
+        password_label = ttk.Label(self.pop, text="Password:")
+        password_label.pack(pady=10)
+        self.passphrase_entry = ttk.Entry(self.pop, show="*")
         self.passphrase_entry.pack()
 
-        password_button = ttk.Button(self.pop, text="✔", command=lambda: subject.run_with_passphrase(self.passphrase_entry.get()))
+        password_button = ttk.Button(self.pop, text="✔", command=lambda: subject.run_with_passphrase(self.passphrase_entry.get().strip()))
         password_button.pack(pady=10)
 
         self.pop.mainloop()
