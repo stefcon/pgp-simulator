@@ -68,14 +68,14 @@ def encryption_send_pipeline(msg: Msg, wrapper_and_key_id):
         # TODO: Raise user-defined exception
         # Ne sme DSA za enkripciju, samo za potpis
         raise
-    msg.data = key_id + encrypted_session_key + ciphertext
+    msg.data = key_id.to_bytes(KEY_ID_LEN, byteorder='big') + encrypted_session_key + ciphertext
     return msg
 
 
 def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
     cipher_wrapper: IEncryption = wrapper_and_passphrase[0]
     passphrase = wrapper_and_passphrase[1]
-    key_id = msg.data[0:KEY_ID_LEN]
+    key_id = int.from_bytes(msg.data[0:KEY_ID_LEN], byteorder='big')
     key, cipher_length, type = private_key_ring.get_decrypted_private_key(key_id, passphrase)
     if type == RSA_ALGORITHM:
         encrypted_session_key, ciphertext = msg.data[KEY_ID_LEN:KEY_ID_LEN + cipher_length], msg.data[KEY_ID_LEN + cipher_length:]
@@ -108,14 +108,14 @@ def signature_send_pipeline(msg: Msg, wrapper_key_id_and_pass):
         raise
     signature = cipher.sign(msg.data)
     ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
-    msg.data = ts + key_id + signature + msg.data
+    msg.data = ts + key_id.to_bytes(KEY_ID_LEN, byteorder='big') + signature + msg.data
     return msg
 
 
 def signature_receive_pipeline(msg: Msg, _):
     ts, key_id = \
     msg.data[0:TIMESTAMP_LEN], \
-    msg.data[TIMESTAMP_LEN:TIMESTAMP_LEN+KEY_ID_LEN]
+    int.from_bytes(msg.data[TIMESTAMP_LEN:TIMESTAMP_LEN+KEY_ID_LEN], byteorder='big')
 
     entry = public_key_ring.get_entry_by_key_id(key_id)
 

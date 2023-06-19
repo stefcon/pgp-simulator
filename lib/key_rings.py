@@ -80,11 +80,17 @@ class BaseKeyRing:
             for entry in entries:
                 self.index_by_key_id.pop(entry['key_id'], None)
 
-    def get_user_ids(self):
-        return list(self.index_by_user_id.keys())
+    def get_user_ids(self, type=None):
+        if type is None:
+            return list(self.index_by_user_id.keys())
+        else:
+            return [entry['user_id'] for entry in self.index_by_key_id.values() if entry['type'] != type]
     
-    def get_key_ids_for_user_id(self, user_id):
-        return [entry['key_id'] for entry in self.index_by_user_id[user_id]]
+    def get_key_ids_for_user_id(self, user_id, type=None):
+        if type is None:
+            return [entry['key_id'] for entry in self.index_by_user_id[user_id]]
+        else:
+            return [entry['key_id'] for entry in self.index_by_user_id[user_id] if entry['type'] != type]
 
     def get_all_entries(self):
         return list(self.index_by_key_id.values())
@@ -192,6 +198,7 @@ class PGPPrivateKeyRing(BaseKeyRing):
         return ciphertext
     
     def _decrypt_RSA_private_key(self, encrypted_private_key, passphrase):
+        print("udje u rsa")
         cipher = AES_Wrapper(SHA1.new(bytes(passphrase, 'utf-8')).digest()[:16])
         serialized_private_key= cipher.decrypt(encrypted_private_key)
         private_key = RSA.import_key(serialized_private_key)

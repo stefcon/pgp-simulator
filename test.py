@@ -55,7 +55,7 @@ def main():
 
     print(msg.data)
 
-    pipeline = ReceivePipeline('test.txt')
+    pipeline = ReceivePipeline('test2.txt')
     msg = pipeline.run()
     print()
     print(msg.data)
