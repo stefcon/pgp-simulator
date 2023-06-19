@@ -1,3 +1,3 @@
 import sys
 import os
-sys.path.insert(1, os.path.abspath('.\\gui'))
+sys.path.insert(1, os.path.abspath('./gui'))

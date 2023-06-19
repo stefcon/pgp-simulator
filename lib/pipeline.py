@@ -1,4 +1,8 @@
 import datetime
+
+from zope.interface import implementer
+from .interfaces import *
+
 from .pipeline_steps import *
 
 class SendPipeline:
@@ -48,12 +52,15 @@ class SendPipeline:
         for step, param in zip(self.steps, self.params):
             self.msg = step(self.msg, param)
         return self.msg
-    
+
+@implementer(ISubject)
 class ReceivePipeline:
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, passphrase=""):
         self.steps = []
         self.params = []
         self.msg = load_from_file(Msg(), filename)
+        self.passphrase = passphrase
+        self.subscribers = set()
 
         # Step 1: Radix Conversion
         if self.msg.uze_rad64:
@@ -64,9 +71,9 @@ class ReceivePipeline:
         if self.msg.enc is not None:
             self.steps.append(decryption_receive_pipeline)
             if self.msg.enc == AES_ALGORITHM:
-                self.params.append((AES_Wrapper, 'aaa'))
+                self.params.append((AES_Wrapper, passphrase))
             elif self.msg.enc == DES3_ALGORITHM:
-                self.params.append((DES3_Wrapper, 'aaa'))
+                self.params.append((DES3_Wrapper, passphrase))
 
         # Step 3: Unzip
         if self.msg.uze_zip:
@@ -84,6 +91,25 @@ class ReceivePipeline:
         self.steps.append(extract_message)
 
     def run(self):
-        for step, param in zip(self.steps, self.params):
-            self.msg = step(self.msg, param)
-        return self.msg
+        try:
+            for step, param in zip(self.steps, self.params):
+                self.msg = step(self.msg, param)
+            return self.msg
+        except NoPassphrase as np:
+            self.notify(np.keyID)
+
+    def run_with_passphrase(self, passphrase):
+        self.passphrase = passphrase
+        self.run()
+
+    def attach(self, observer):
+        self.subscribers.add(observer)
+
+    def detach(self, observer):
+        """Detach observer"""
+        self.subscribers.remove(observer)
+
+    def notify(self, keyID):
+        """Notify observers"""
+        for subscriber in self.subscribers:
+            subscriber.update(self, keyID)

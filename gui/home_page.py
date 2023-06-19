@@ -47,9 +47,9 @@ class HomePage(tk.Frame):
 
     def open_receive_window(self):
         # Check if file exists
-        if not os.path.exists(self.path_text.get(1.0, tk.END).strip()):
-            messagebox.showerror("Error", "File does not exist!")
-            return
+        # if not os.path.exists(self.path_text.get(1.0, tk.END).strip()):
+        #     messagebox.showerror("Error", "File does not exist!")
+        #     return
         self.controller.display_frame(page_selector(RECEIVE))
 
     def open_key_vault_window(self):
