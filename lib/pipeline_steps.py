@@ -29,7 +29,7 @@ def radix_convert(msg: Msg, _):
     return msg
 
 def radix_deconvert(msg: Msg, _):
-    msg.data = b64decode(msg.data + b'==')
+    msg.data = b64decode(msg.data)
     return msg
 
 # --------------- Serialization of message ---------------

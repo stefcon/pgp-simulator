@@ -102,14 +102,14 @@ class GenerateKeyPage(tk.Frame):
                 email=self.email_entry.get(),
                 name=self.name_entry.get(),
                 passphrase=passphrase,
-                key_length=key_length, 
+                key_length=key_length//8,
                 type=key_type)
             public_key_ring.add_entry(
                 key_id=key_id, 
                 key=key,
                 email=self.email_entry.get(),
                 name=self.name_entry.get(),
-                key_length=key_length, 
+                key_length=key_length//8,
                 type=key_type)
         except Exception as e:
             messagebox.showerror("Error", str(e))

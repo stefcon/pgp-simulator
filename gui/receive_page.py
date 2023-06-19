@@ -11,7 +11,7 @@ class ReceivePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-
+        self.receive_pipeline = None
 
 
         #grid
@@ -35,13 +35,15 @@ class ReceivePage(tk.Frame):
         # First row
         from_label.grid(row=1, column=1, padx=5)
 
-        user_id_label = ttk.Label(self, text="UserID")
+        self.user_id_var = tk.StringVar()
+        user_id_label = ttk.Label(self, textvariable=self.user_id_var)
         user_id_label.grid(row=1, column=2, padx=5)
 
         # Second row
         public_key_label.grid(row=2, column=1, padx=5)
 
-        public_key_id_label = ttk.Label(self, text="PublicKeyId")
+        self.public_key_id_var = tk.StringVar()
+        public_key_id_label = ttk.Label(self, textvariable=self.public_key_id_var)
         public_key_id_label.grid(row=2, column=2, padx=5)
 
         # Third row
@@ -51,7 +53,7 @@ class ReceivePage(tk.Frame):
         self.password_entry.grid(row=3, column=2, padx=5)
 
         # Fourth row
-        check_button = ttk.Button(self, text="✔", command=self.receive_file)
+        check_button = ttk.Button(self, text="✔", command=lambda: self.receive_pipeline.run_with_passphrase(self.password_entry.get().strip()))
         check_button.grid(row=4, column=1, padx=5, pady=10)
 
         back_button = ttk.Button(self, text="Back", command=lambda: controller.display_frame(page_selector(HOME)))
@@ -61,39 +63,25 @@ class ReceivePage(tk.Frame):
         filepath = tk.filedialog.askopenfilename()
         self.path_text.delete(1.0, tk.END)
         self.path_text.insert(tk.END, filepath)
-
-    def receive_file(self):
-        #Prvo pronadji odgovarajuci privatni kljuc
-        rp = ReceivePipeline(self.path_text.get(1.0, tk.END).strip())
-        rp.attach(self)
-        rp.run()
-
-        #Nakon unosa sifre procitaj poruku
-        rp.run()
+        self.receive_pipeline = ReceivePipeline(self.path_text.get(1.0, tk.END).strip())
+        self.receive_pipeline.attach(self)
+        msg = self.receive_pipeline.run()
 
 
+
+    # def receive_file(self):
+    #     #Prvo pronadji odgovarajuci privatni kljuc
+    #     rp = ReceivePipeline(self.path_text.get(1.0, tk.END).strip())
+    #     rp.attach(self)
+    #     rp.run()
+    #
+    #     #Nakon unosa sifre procitaj poruku
+    #     rp.run()
+    #
+    #
     def update(self, subject: ReceivePipeline, keyID):
-        print("update")
-        #Otvori prozor za unos sifre
-        self.pop = tk.Toplevel(self.controller)
-        self.pop.title("Input passphrase")
-        self.pop.geometry("300x200")
-        self.pop.resizable(False, False)
-
-        name_label = ttk.Label(self.pop, text="KeyID:")
-        name_label.pack(pady=10)
-        keyid_label = ttk.Label(self.pop, text=str(hex(keyID)))
-        keyid_label.pack(pady=10)
-
-        password_label = ttk.Label(self.pop, text="Password:")
-        password_label.pack(pady=10)
-        self.passphrase_entry = ttk.Entry(self.pop, show="*")
-        self.passphrase_entry.pack()
-
-        password_button = ttk.Button(self.pop, text="✔", command=lambda: subject.run_with_passphrase(self.passphrase_entry.get().strip()))
-        password_button.pack(pady=10)
-
-        self.pop.mainloop()
+        self.public_key_id_var.set(str(hex(keyID)))
+        self.user_id_var.set(public_key_ring.get_entry_by_key_id(keyID)['user_id'])
 
 
 

@@ -58,6 +58,7 @@ class ReceivePipeline:
     def __init__(self, filename: str):
         self.steps = []
         self.params = []
+        self.filename = filename
         self.msg = load_from_file(Msg(), filename)
         self.passphrase = []
         self.subscribers = set()
@@ -99,6 +100,7 @@ class ReceivePipeline:
             self.notify(np.keyID)
 
     def run_with_passphrase(self, passphrase):
+        self.msg = load_from_file(Msg(), self.filename)
         self.passphrase.append(passphrase)
         self.run()
 
