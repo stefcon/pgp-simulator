@@ -9,7 +9,6 @@ from Crypto.PublicKey import (_expand_subject_public_key_info,
                               _create_subject_public_key_info,) # Shouldn't be used, but it is what it is
 
 
-# TODO: Mozda dodati protekciju za sam PEM format preko nekog passhprase-a, ima u Crypto.PublicKey.RSA ideja
 class ElGamalKey:
     """
     ElGamal key object
@@ -45,6 +44,7 @@ class ElGamalKey:
         self.g = randint(0, self.p - 1)
         self.y = pow(self.g, self.x, self.p)
         self.has_private_key = True
+        return self
 
     def has_private(self):
         return self.has_private_key

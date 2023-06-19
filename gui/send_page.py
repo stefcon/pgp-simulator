@@ -67,13 +67,12 @@ class SendPage(tk.Frame):
         authentication_label = ttk.Label(self, text="Authentication:")
         authentication_label.grid(row=5, column=1, padx=5, pady=10)
 
-        self.authentication_dropdown = ttk.Combobox(self)
-        self.authentication_dropdown["values"] = (None, RSA_PSS_ALGORITHM, DSA_ALGORITHM)
-        self.authentication_dropdown.bind("<<ComboboxSelected>>", self.on_auth_selected)
-        self.authentication_dropdown.state(["disabled"])
-        self.authentication_dropdown.current(0)
+        self.authentication_var = tk.StringVar()
+        self.authentication_var.set("None")
+        self.authentication_output = ttk.Entry(self, textvariable=self.authentication_var, state="disabled")
+        self.authentication_output.bind("<<ComboboxSelected>>", self.on_auth_selected)
 
-        self.authentication_dropdown.grid(row=5, column=2, padx=5, pady=10)
+        self.authentication_output.grid(row=5, column=2, padx=5, pady=10)
 
         self.authentication_enable = tk.IntVar()
         self.authentication_checkbox = ttk.Checkbutton(self, variable=self.authentication_enable)
@@ -150,25 +149,25 @@ class SendPage(tk.Frame):
     def on_user_id1_selected(self, event):
         user_id = self.user_id1_dropdown.get()
         self.key_id1_dropdown["values"] = private_key_ring.get_key_ids_for_user_id(user_id, type=DSA_ALGORITHM)
+        self.key_id1_dropdown.current(0)
 
     def on_user_id2_selected(self, event):
         user_id = self.user_id2_dropdown.get()
         self.private_key_dropdown["values"] = private_key_ring.get_key_ids_for_user_id(user_id, type=ELGAMAL_ALGORITHM)
+        self.private_key_dropdown.current(0)
 
     def on_private_key_selected(self, event):
         key_id = int(self.private_key_dropdown.get())
         key_type = private_key_ring.get_entry_by_key_id(key_id)['type']
         if key_type == RSA_ALGORITHM:
-            self.authentication_dropdown.current(1)
+            self.authentication_var.set(RSA_PSS_ALGORITHM)
         else:
-            self.authentication_dropdown.current(2)
+            self.authentication_var.set(DSA_ALGORITHM)
 
 
     def on_auth_selected(self, event):
-        print("Usao sam u on_auth_selected")
-        print(self.authentication_dropdown.get())
-        if self.authentication_dropdown.get() is not None and \
-                    self.authentication_dropdown.get() != "None":
+        if self.authentication_output.get() is not None and \
+                    self.authentication_output.get() != "None":
             self.password_entry.configure(state="normal")
         else:
             self.password_entry.configure(state="disabled")
@@ -178,21 +177,28 @@ class SendPage(tk.Frame):
             self.user_id2_dropdown["values"] = private_key_ring.get_user_ids(type=ELGAMAL_ALGORITHM)
             if len(self.user_id2_dropdown["values"]):
                 self.user_id2_dropdown.current(0)
+
             self.private_key_dropdown["values"] = private_key_ring.get_key_ids_for_user_id(self.user_id2_dropdown.get(), type=ELGAMAL_ALGORITHM)
+            if len(self.private_key_dropdown["values"]):
+                self.private_key_dropdown.current(0)
+                self.on_private_key_selected(None)
         elif subject == public_key_ring:
             self.user_id1_dropdown["values"] = public_key_ring.get_user_ids(type=DSA_ALGORITHM)
             if len(self.user_id1_dropdown["values"]):
                 self.user_id1_dropdown.current(0)
+
             self.key_id1_dropdown["values"] = public_key_ring.get_key_ids_for_user_id(self.user_id1_dropdown.get(), type=DSA_ALGORITHM)
+            if len(self.key_id1_dropdown["values"]):
+                self.key_id1_dropdown.current(0)
         else:
             raise ValueError("Invalid subject")
         
     def send_message(self):
         try:
             msg = Msg()
-            msg.data = self.body_text.get("1.0", tk.END).strip().encode()
+            msg.data = self.body_text.get(1.0, tk.END).strip().encode()
             msg.enc = self.encryption_dropdown.get() if self.encryption_dropdown.get() != "None"  else None
-            msg.auth = self.authentication_dropdown.get() if self.authentication_dropdown.get() != "None" and self.authentication_enable.get() else None
+            msg.auth = self.authentication_output.get() if self.authentication_output.get() != "None" and self.authentication_enable.get() else None
             msg.uze_zip = bool(self.zip_var.get())
             msg.uze_rad64 = bool(self.radix_var.get())
 

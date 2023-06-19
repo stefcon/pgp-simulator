@@ -228,13 +228,8 @@ class PGPPrivateKeyRing(BaseKeyRing):
             elif entry['type'] == DSA_ALGORITHM:
                 return self._decrypt_DSA_private_key(encrypted_private_key, passphrase), entry['key_length'], entry['type']
         except (ValueError, KeyError) as e:
-            raise e
+            raise ValueError('Invalid passphrase')
 
-    # def check_password(self, passphrase, key_id):
-    #     h_pp_to_be_checked = SHA1.new(bytes(passphrase, 'utf-8')).digest()
-    #     if h_pp_to_be_checked != self.index_by_key_id[key_id]['h_passphrase']:
-    #         return False
-    #     return True
 
     def add_entry(self, key_id, key, email, name, passphrase, key_length, type):
         user_id = name + ' <' + email + '>'

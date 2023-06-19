@@ -65,9 +65,8 @@ def encryption_send_pipeline(msg: Msg, wrapper_and_key_id):
         encrypted_session_key_tuple = asym_cipher.encrypt(session_key)
         encrypted_session_key = encrypted_session_key_tuple[0] + encrypted_session_key_tuple[1]
     elif entry['type'] == DSA_ALGORITHM:
-        # TODO: Raise user-defined exception
         # Ne sme DSA za enkripciju, samo za potpis
-        raise
+        raise ValueError('Invalid key type')
     msg.data = key_id.to_bytes(KEY_ID_LEN, byteorder='big') + encrypted_session_key + ciphertext
     return msg
 
@@ -87,7 +86,6 @@ def decryption_receive_pipeline(msg: Msg, wrapper_and_passphrase):
         encrypted_session_key_tuple =(encrypted_session_key[0:(cipher_length)], encrypted_session_key[(cipher_length):])
         session_key = asym_cipher.decrypt(encrypted_session_key_tuple)
     else:
-        # TODO: Raise user-defined exception
         # Ne sme DSA za enkripciju, samo za potpis
         raise ValueError('Invalid key type')
     cipher = cipher_wrapper(session_key)
@@ -105,7 +103,7 @@ def signature_send_pipeline(msg: Msg, wrapper_key_id_and_pass):
         cipher = DSA_Wrapper(key)
     else:
         # Ne sme Elgamal za potpis, samo za enkripciju
-        raise
+        raise ValueError('Invalid key type')
     signature = cipher.sign(msg.data)
     ts = datetime.datetime.now().strftime(TIMESTAMP_FORMAT).encode()
     msg.data = ts + key_id.to_bytes(KEY_ID_LEN, byteorder='big') + signature + msg.data
